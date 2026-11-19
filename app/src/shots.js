@@ -9,16 +9,16 @@
 // Distinct crop presets for each panel to create varied vignettes
 // Each crop: { x, y, scale } where x,y are 0..1 normalized center, scale is relative to panel
 const SHOT_CROPS = {
-  'cover': { // Default cover (1080x1080) - mosaic layout (9 panels, 8 image panels + emblem)
-    p1: { x: 0.5, y: 0.4, scale: 0.75 },     // Top-left action - moto wheelie (rider focused)
-    p2: { x: 0.5, y: 0.45, scale: 0.85 },    // Top-center hero - boulevard portrait (face visible)
-    p3: { x: 0.5, y: 0.3, scale: 0.6 },      // Top-right action - supercar detail
-    p4: { x: 0.5, y: 0.5, scale: 0.8 },      // Mid-left tall - pier bust (face visible)
-    // emblem skipped (typographic plate)
-    p6: { x: 0.5, y: 0.4, scale: 0.75 },     // Mid-right tall - neon boardwalk
-    p7: { x: 0.5, y: 0.35, scale: 0.7 },     // Bottom-left wide - supercar wide
-    p8: { x: 0.5, y: 0.3, scale: 0.55 },     // Bottom-center - marina dusk boat (WIDE crop, boat focus)
-    p9: { x: 0.5, y: 0.7, scale: 0.65 }      // Bottom-right wide - marina flamingo/water (LOW crop, flamingos)
+  'cover': { // Default cover (1080x1080) - mosaic layout (9 panels, 8 image panels + emblem at index 4)
+    p1: { x: 0.5, y: 0.4, scale: 0.75 },     // index 0 - Top-left action - moto wheelie (rider focused)
+    p2: { x: 0.5, y: 0.45, scale: 0.85 },    // index 1 - Top-center hero - boulevard portrait (face visible)
+    p3: { x: 0.5, y: 0.3, scale: 0.6 },      // index 2 - Top-right action - supercar detail
+    p4: { x: 0.5, y: 0.5, scale: 0.8 },      // index 3 - Mid-left tall - pier bust (face visible)
+    // index 4 is emblem (typographic plate) - skipped
+    p6: { x: 0.5, y: 0.4, scale: 0.75 },     // index 5 - Mid-right tall - neon boardwalk
+    p7: { x: 0.5, y: 0.35, scale: 0.7 },     // index 6 - Bottom-left wide - supercar wide
+    p8: { x: 0.5, y: 0.3, scale: 0.55 },     // index 7 - Bottom-center - marina dusk boat (WIDE crop, boat focus)
+    p9: { x: 0.5, y: 0.7, scale: 0.65 }      // index 8 - Bottom-right wide - marina flamingo/water (LOW crop, flamingos)
   },
   'cover-1350': { // 1080x1350 portrait - mosaic-1350 layout
     p1: { x: 0.5, y: 0.35, scale: 0.8 },
@@ -70,13 +70,20 @@ const SHOT_CROPS = {
 // Sample photo filenames (without .jpg)
 const SAMPLE_PHOTOS = ['pier', 'boulevard', 'neon-boardwalk', 'moto-wheelie', 'supercar-deco', 'marina-dusk'];
 
-// Panel-to-photo mapping for cover shots (8 image panels, skipping emblem at index 4)
-// Mosaic layout has 9 panels: indices 0-8, where index 4 is the emblem (isEmblem: true)
-// The 8 image panels are at layout indices: 0,1,2,3,5,6,7,8
-// Mapping per brief: [3,1,4,0,2,5,3,5]
-// P1(0)=moto-wheelie(3), P2(1)=boulevard(1), P3(2)=supercar-deco(4), P4(3)=pier(0),
-// P6(5)=neon-boardwalk(2), P7(6)=marina-dusk(5), P8(7)=moto-wheelie(3) DIFFERENT crop (wide), P9(8)=marina-dusk(5) DIFFERENT crop (water/flamingo)
-const COVER_PANEL_PHOTO_MAP = [3, 1, 4, 0, 2, 5, 3, 5]; // indices into SAMPLE_PHOTOS for the 8 image panels
+// Panel-to-photo mapping for cover shots — 9-slot map matching layout indices (0-8)
+// Index 4 is the emblem (hole/ignored). All 6 photos appear; marina-dusk reused for very different crops (boat vs flamingos).
+// SAMPLE_PHOTOS: [0:pier, 1:boulevard, 2:neon-boardwalk, 3:moto-wheelie, 4:supercar-deco, 5:marina-dusk]
+const COVER_PANEL_PHOTO_MAP = [
+  3, // index 0 (p1): moto-wheelie - rider focused
+  1, // index 1 (p2): boulevard - face visible
+  4, // index 2 (p3): supercar-deco - detail crop
+  0, // index 3 (p4): pier - bust/face visible
+  -1, // index 4: EMBLEM HOLE (ignored)
+  2, // index 5 (p6): neon-boardwalk - neon scene
+  4, // index 6 (p7): supercar-deco - WIDE crop (very different from detail at index 2)
+  5, // index 7 (p8): marina-dusk - boat focus (wide crop)
+  5  // index 8 (p9): marina-dusk - flamingos/water (low crop, very different from boat)
+];
 
 export async function runShot(shot, query, load) {
   // Parse parameters

@@ -368,26 +368,97 @@ export function drawWordmark(ctx, w, h, style) {
 // ============================================================
 
 /**
- * Applies contrast and saturation
+ * Converts RGB to HSV
  */
-function applyContrastSaturation(data, w, h, contrast, saturation) {
-  const factor = (259 * (contrast * 255 + 255)) / (255 * (259 - contrast * 255));
+function rgbToHsv(r, g, b) {
+  r /= 255; g /= 255; b /= 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  let h = 0, s = 0, v = max;
+  const d = max - min;
+  s = max === 0 ? 0 : d / max;
+  if (max !== min) {
+    switch (max) {
+      case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+      case g: h = (b - r) / d + 2; break;
+      case b: h = (r - g) / d + 4; break;
+    }
+    h /= 6;
+  }
+  return { h: h * 360, s, v };
+}
+
+/**
+ * Converts HSV to RGB
+ */
+function hsvToRgb(h, s, v) {
+  h = h / 360;
+  const i = Math.floor(h * 6);
+  const f = h * 6 - i;
+  const p = v * (1 - s);
+  const q = v * (1 - f * s);
+  const t = v * (1 - (1 - f) * s);
+  let r, g, b;
+  switch (i % 6) {
+    case 0: r = v, g = t, b = p; break;
+    case 1: r = q, g = v, b = p; break;
+    case 2: r = p, g = v, b = t; break;
+    case 3: r = p, g = q, b = v; break;
+    case 4: r = t, g = p, b = v; break;
+    case 5: r = v, g = p, b = q; break;
+  }
+  return { r: Math.round(r * 255), g: Math.round(g * 255), b: Math.round(b * 255) };
+}
+
+/**
+ * Checks if a pixel is skin-tone (hue 0-50°, moderate saturation)
+ */
+function isSkinTone(r, g, b) {
+  const { h, s, v } = rgbToHsv(r, g, b);
+  // Skin tones: hue ~0-50° (reds/oranges/yellows), moderate saturation (0.15-0.6), not too dark/bright
+  return h <= 50 && s >= 0.15 && s <= 0.65 && v >= 0.2 && v <= 0.95;
+}
+
+/**
+ * Applies S-curve contrast and saturation with skin protection
+ */
+function applyContrastSaturation(data, w, h, contrast, saturation, grade) {
+  // S-curve contrast using smoothstep-like function
+  // Maps 0-255 through S-curve for more natural filmic contrast
+  function sCurve(x, contrast) {
+    const normalized = x / 255;
+    // Smoothstep S-curve: 3x^2 - 2x^3, then blend with linear based on contrast
+    const curved = 3 * normalized * normalized - 2 * normalized * normalized * normalized;
+    return Math.round(255 * (normalized + (curved - normalized) * (contrast - 1)));
+  }
 
   for (let i = 0; i < data.length; i += 4) {
     let r = data[i];
     let g = data[i + 1];
     let b = data[i + 2];
 
-    // Contrast
-    r = factor * (r - 128) + 128;
-    g = factor * (g - 128) + 128;
-    b = factor * (b - 128) + 128;
+    const skin = isSkinTone(r, g, b);
 
-    // Saturation
+    // S-curve contrast
+    if (!skin) {
+      r = sCurve(r, contrast);
+      g = sCurve(g, contrast);
+      b = sCurve(b, contrast);
+    } else {
+      // Skin: gentle luminance-only contrast
+      const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+      const newLum = sCurve(lum, 1 + (contrast - 1) * 0.3); // reduced contrast on skin
+      const ratio = lum > 0 ? newLum / lum : 1;
+      r = Math.min(255, Math.max(0, r * ratio));
+      g = Math.min(255, Math.max(0, g * ratio));
+      b = Math.min(255, Math.max(0, b * ratio));
+    }
+
+    // Saturation - reduce on skin
+    const effectiveSaturation = skin ? 1 + (saturation - 1) * 0.3 : saturation;
     const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-    r = lum + saturation * (r - lum);
-    g = lum + saturation * (g - lum);
-    b = lum + saturation * (b - lum);
+    r = lum + effectiveSaturation * (r - lum);
+    g = lum + effectiveSaturation * (g - lum);
+    b = lum + effectiveSaturation * (b - lum);
 
     data[i] = Math.min(255, Math.max(0, r));
     data[i + 1] = Math.min(255, Math.max(0, g));
@@ -396,7 +467,8 @@ function applyContrastSaturation(data, w, h, contrast, saturation) {
 }
 
 /**
- * Detects sky region (upper portion with high luma, low texture) and replaces with gradient
+ * Detects sky region (upper portion with high luma, low texture, blue/cyan hue) and replaces with gradient
+ * Only blends on genuine sky-like pixels — never skin, mid-ground, or water
  */
 function applySkyGradient(ctx, w, h, grade) {
   const imgData = ctx.getImageData(0, 0, w, h);
@@ -406,6 +478,49 @@ function applySkyGradient(ctx, w, h, grade) {
   // Analyze upper 40% for sky detection
   const skyHeight = Math.floor(h * 0.4);
 
+  // First pass: build sky mask by analyzing texture and color
+  const skyMask = new Uint8Array(w * skyHeight);
+  for (let y = 0; y < skyHeight; y++) {
+    for (let x = 0; x < w; x++) {
+      const idx = (y * w + x) * 4;
+      const r = data[idx];
+      const g = data[idx + 1];
+      const b = data[idx + 2];
+
+      // Sky detection: high luma, blue/cyan dominant, low saturation, not skin
+      const luma = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+      const { h: hue, s: sat, v: val } = rgbToHsv(r, g, b);
+
+      // True sky: high value, blue/cyan hue (180-260°), low saturation, high luma
+      // NOT skin (hue 0-50°), NOT vegetation (hue 80-150°), NOT warm surfaces
+      const isBlueCyan = hue >= 180 && hue <= 260;
+      const isLowSat = sat <= 0.4;
+      const isBright = val >= 0.4 && luma >= 80;
+      const notSkin = !isSkinTone(r, g, b);
+
+      // Additional texture check: sky has low local variance
+      // Sample 3x3 neighborhood for variance
+      let localVar = 0;
+      let samples = 0;
+      for (let ky = -1; ky <= 1; ky++) {
+        for (let kx = -1; kx <= 1; kx++) {
+          const ny = y + ky, nx = x + kx;
+          if (ny >= 0 && ny < skyHeight && nx >= 0 && nx < w) {
+            const nIdx = (ny * w + nx) * 4;
+            const nLuma = 0.2126 * data[nIdx] + 0.7152 * data[nIdx + 1] + 0.0722 * data[nIdx + 2];
+            localVar += Math.abs(nLuma - luma);
+            samples++;
+          }
+        }
+      }
+      localVar = samples > 0 ? localVar / samples : 0;
+      const isSmooth = localVar < 25; // low texture variance
+
+      skyMask[y * w + x] = (isBlueCyan && isLowSat && isBright && notSkin && isSmooth) ? 1 : 0;
+    }
+  }
+
+  // Second pass: apply gradient only where skyMask is 1
   for (let y = 0; y < skyHeight; y++) {
     const t = y / skyHeight;
 
@@ -422,28 +537,19 @@ function applySkyGradient(ctx, w, h, grade) {
       }
     }
 
-    // Blend with existing pixels (stronger blend in upper regions)
+    // Blend strength varies vertically (stronger at top)
     const blendStrength = 1.0 - (y / skyHeight) * 0.3; // 1.0 at top, 0.7 at skyHeight
     for (let x = 0; x < w; x++) {
-      const idx = (y * w + x) * 4;
-      const origR = data[idx];
-      const origG = data[idx + 1];
-      const origB = data[idx + 2];
-
-      // Check if pixel looks like sky (high luma, blue/cyan hue, low saturation variance)
-      const luma = 0.2126 * origR + 0.7152 * origG + 0.0722 * origB;
-      const isSkyLike = luma > 100 && origB > origR && origB > origG * 0.8;
-
-      if (isSkyLike) {
+      if (skyMask[y * w + x]) {
+        const idx = (y * w + x) * 4;
+        const origR = data[idx];
+        const origG = data[idx + 1];
+        const origB = data[idx + 2];
         data[idx] = origR * (1 - blendStrength) + r * blendStrength;
         data[idx + 1] = origG * (1 - blendStrength) + g * blendStrength;
         data[idx + 2] = origB * (1 - blendStrength) + b * blendStrength;
-      } else {
-        // Still tint non-sky pixels in upper region
-        data[idx] = origR * (1 - blendStrength * 0.4) + r * blendStrength * 0.4;
-        data[idx + 1] = origG * (1 - blendStrength * 0.4) + g * blendStrength * 0.4;
-        data[idx + 2] = origB * (1 - blendStrength * 0.4) + b * blendStrength * 0.4;
       }
+      // NO else branch - non-sky pixels are left completely untouched
     }
   }
 
@@ -560,6 +666,93 @@ function applyGrain(data, opacity) {
 }
 
 /**
+ * Applies split-tone: teal shadows, warm highlights (only on non-skin pixels)
+ */
+function applySplitTone(data, w, h, grade) {
+  // Teal for shadows: ~180-190°, Warm for highlights: ~30-40°
+  const shadowHue = 185; // teal
+  const shadowSat = 0.35;
+  const highlightHue = 35; // warm gold
+  const highlightSat = 0.25;
+
+  for (let i = 0; i < data.length; i += 4) {
+    const r = data[i];
+    const g = data[i + 1];
+    const b = data[i + 2];
+
+    // Skip skin tones entirely
+    if (isSkinTone(r, g, b)) continue;
+
+    const { h: hue, s: sat, v: val } = rgbToHsv(r, g, b);
+    const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    const lumNorm = lum / 255;
+
+    // Split-tone only in shadows (low luminance) and highlights (high luminance)
+    // Midtones left alone
+    if (lumNorm < 0.35) {
+      // Shadows: blend toward teal
+      const strength = (0.35 - lumNorm) / 0.35 * 0.4; // max 40% blend in deep shadows
+      const shadowRgb = hsvToRgb(shadowHue, shadowSat, val);
+      data[i] = Math.round(r * (1 - strength) + shadowRgb.r * strength);
+      data[i + 1] = Math.round(g * (1 - strength) + shadowRgb.g * strength);
+      data[i + 2] = Math.round(b * (1 - strength) + shadowRgb.b * strength);
+    } else if (lumNorm > 0.7) {
+      // Highlights: blend toward warm gold
+      const strength = (lumNorm - 0.7) / 0.3 * 0.25; // max 25% blend in bright highlights
+      const highlightRgb = hsvToRgb(highlightHue, highlightSat, val);
+      data[i] = Math.round(r * (1 - strength) + highlightRgb.r * strength);
+      data[i + 1] = Math.round(g * (1 - strength) + highlightRgb.g * strength);
+      data[i + 2] = Math.round(b * (1 - strength) + highlightRgb.b * strength);
+    }
+  }
+}
+
+/**
+ * Applies soft vignette
+ */
+function applyVignette(data, w, h) {
+  const cx = w / 2, cy = h / 2;
+  const maxDist = Math.sqrt(cx * cx + cy * cy);
+
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const idx = (y * w + x) * 4;
+      const dx = x - cx;
+      const dy = y - cy;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const normDist = dist / maxDist;
+      // Smooth vignette: starts at 0.5, max 0.35 darkening at corners
+      const vignette = Math.max(0, (normDist - 0.5) / 0.5) * 0.35;
+      data[idx] = Math.round(data[idx] * (1 - vignette));
+      data[idx + 1] = Math.round(data[idx + 1] * (1 - vignette));
+      data[idx + 2] = Math.round(data[idx + 2] * (1 - vignette));
+    }
+  }
+}
+
+/**
+ * Gently clips highlights to prevent blown whites
+ */
+function applyHighlightClipping(data, w, h) {
+  for (let i = 0; i < data.length; i += 4) {
+    const r = data[i];
+    const g = data[i + 1];
+    const b = data[i + 2];
+    const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+
+    if (lum > 230) {
+      // Soft rolloff above 230
+      const excess = lum - 230;
+      const rolloff = Math.min(1, excess / 25); // fully rolled off at 255
+      const factor = 1 - rolloff * 0.5; // max 50% reduction
+      data[i] = Math.round(r * factor);
+      data[i + 1] = Math.round(g * factor);
+      data[i + 2] = Math.round(b * factor);
+    }
+  }
+}
+
+/**
  * Applies bloom to highlights
  */
 function applyBloom(data, w, h, bloom) {
@@ -578,13 +771,13 @@ function applyBloom(data, w, h, bloom) {
 
 /**
  * Full illustrated filter pipeline for a panel
- * Cinematic default (vice-sunset): skips gradient map and posterize
+ * Cinematic default (vice-sunset): skips gradient map and posterize, adds split-tone, vignette, highlight clipping
  * Comic/Poster preset: uses full pipeline with gradient map and posterize
  */
 function applyIllustratedFilter(ctx, w, h, grade) {
-  // 1. Contrast + saturation (gentle S-curve)
+  // 1. Contrast + saturation (gentle S-curve) with skin protection
   let imgData = ctx.getImageData(0, 0, w, h);
-  applyContrastSaturation(imgData.data, w, h, grade.contrast, grade.saturation);
+  applyContrastSaturation(imgData.data, w, h, grade.contrast, grade.saturation, grade);
   ctx.putImageData(imgData, 0, 0);
 
   // 2. Sky gradient replacement/tint (only on sky-like regions)
@@ -610,15 +803,36 @@ function applyIllustratedFilter(ctx, w, h, grade) {
     ctx.putImageData(imgData, 0, 0);
   }
 
-  // 5. Edge ink - subtle for cinematic
+  // 5. Split-tone (cinematic only): teal shadows, warm highlights, skip skin
+  if (isIdentityMap) { // cinematic grade
+    imgData = ctx.getImageData(0, 0, w, h);
+    applySplitTone(imgData.data, w, h, grade);
+    ctx.putImageData(imgData, 0, 0);
+  }
+
+  // 6. Edge ink - subtle for cinematic
   applyEdgeInk(ctx, w, h, grade.inkColor, grade.edgeInkStrength);
 
-  // 6. Grain - fine grain
+  // 7. Grain - fine grain
   imgData = ctx.getImageData(0, 0, w, h);
   applyGrain(imgData.data, grade.grainOpacity);
   ctx.putImageData(imgData, 0, 0);
 
-  // 7. Bloom - gentle glow on highlights
+  // 8. Vignette (cinematic only)
+  if (isIdentityMap) {
+    imgData = ctx.getImageData(0, 0, w, h);
+    applyVignette(imgData.data, w, h);
+    ctx.putImageData(imgData, 0, 0);
+  }
+
+  // 9. Highlight clipping (cinematic only) - prevent blown whites
+  if (isIdentityMap) {
+    imgData = ctx.getImageData(0, 0, w, h);
+    applyHighlightClipping(imgData.data, w, h);
+    ctx.putImageData(imgData, 0, 0);
+  }
+
+  // 10. Bloom - gentle glow on highlights
   imgData = ctx.getImageData(0, 0, w, h);
   applyBloom(imgData.data, w, h, grade.bloom);
   ctx.putImageData(imgData, 0, 0);
@@ -748,6 +962,8 @@ export function drawCover(canvas, photos, panelPhotos, crops, layoutName, gradeN
     if (panel.isEmblem) return; // Handle emblem separately
 
     const photoIndex = panelPhotos[i] ?? 0;
+    // Skip emblem hole (sentinel -1) - should not happen for non-emblem panels but guard anyway
+    if (photoIndex < 0) return;
     const photo = photos[photoIndex];
     const crop = (panelCrops && panelCrops[i]) ? panelCrops[i] : (crops[photoIndex] || { x: 0.5, y: 0.5, scale: 1 });
 

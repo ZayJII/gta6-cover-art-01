@@ -161,9 +161,14 @@ layoutPresets.addEventListener('click', (e) => {
   currentLayout = btn.dataset.layout;
   document.querySelectorAll('.layout-btn').forEach(b => b.classList.toggle('active', b === btn));
 
-  // Reset panel assignments when layout changes
-  const panelCount = getPanelCount();
-  panelPhotos = Array.from({ length: panelCount }, (_, i) => Math.min(i, photos.length - 1));
+  // Reset panel assignments when layout changes - use 9-slot map for mosaic layouts
+  const layoutObj = LAYOUTS[currentLayout] || LAYOUTS['mosaic'];
+  if (currentLayout.startsWith('mosaic')) {
+    panelPhotos = COVER_PANEL_PHOTO_MAP.slice(0, layoutObj.length);
+  } else {
+    const panelCount = layoutObj.filter(p => !p.isEmblem).length;
+    panelPhotos = Array.from({ length: panelCount }, (_, i) => Math.min(i, photos.length - 1));
+  }
   selectedPanel = 0;
   updateThumbnails();
   redraw();
@@ -354,9 +359,10 @@ if (shot) {
         SAMPLE_PHOTOS.map(name => loadImage(`samples/${name}.jpg`))
       );
 
-      // Assign different photo to each panel (8 image panels, skipping emblem)
-      const panelCount = getPanelCount();
-      panelPhotos = COVER_PANEL_PHOTO_MAP.slice(0, panelCount);
+      // Assign photos to each panel using 9-slot map (matching layout indices 0-8)
+      // Index 4 is emblem (-1 sentinel), so panelPhotos has 9 entries
+      const layoutObj = LAYOUTS[currentLayout] || LAYOUTS['mosaic'];
+      panelPhotos = COVER_PANEL_PHOTO_MAP.slice(0, layoutObj.length);
 
       // Create default crops for each photo
       const panelAspect = getPanelAspect(0);
@@ -391,10 +397,11 @@ if (shot) {
       const cropMap = {};
 
       if (currentLayout.startsWith('mosaic')) {
-        // Map 9 panels (excluding emblem)
+        // Map to layout indices (0-8), emblem at index 4 is skipped
         const panelNames = ['p1', 'p2', 'p3', 'p4', 'p6', 'p7', 'p8', 'p9'];
+        const layoutIndices = [0, 1, 2, 3, 5, 6, 7, 8];
         panelNames.forEach((name, idx) => {
-          if (shotCrops[name]) cropMap[idx] = shotCrops[name];
+          if (shotCrops[name]) cropMap[layoutIndices[idx]] = shotCrops[name];
         });
       } else if (currentLayout === 'hero-left' || currentLayout === 'hero-right') {
         cropMap.hero = 0;
@@ -413,10 +420,13 @@ if (shot) {
         cropMap.topRight = 3;
       }
 
+      const layoutObj = LAYOUTS[currentLayout] || LAYOUTS['mosaic'];
+      const panelCount = layoutObj.length;
       panelCrops = new Array(panelCount).fill(null);
       for (const [key, panelIdx] of Object.entries(cropMap)) {
-        if (shotCrops[key] && panelIdx < panelCount) {
-          panelCrops[panelIdx] = shotCrops[key];
+        const idx = parseInt(key, 10);
+        if (!isNaN(idx) && shotCrops[key] && idx < panelCount) {
+          panelCrops[idx] = shotCrops[key];
         }
       }
       // Fill any missing with default
@@ -449,9 +459,9 @@ if (shot) {
               photos.push(img6);
               crops.push(createDefaultCrop(img6, getPanelAspect(0)));
 
-              // Auto-assign to first 8 panels (excluding emblem)
-              const panelCount = getPanelCount();
-              panelPhotos = Array.from({ length: panelCount }, (_, i) => Math.min(i, photos.length - 1));
+              // Auto-assign using 9-slot map (matching layout indices 0-8)
+              const layoutObj = LAYOUTS[currentLayout] || LAYOUTS['mosaic'];
+              panelPhotos = COVER_PANEL_PHOTO_MAP.slice(0, layoutObj.length);
               selectPhoto(0);
               updateThumbnails();
               updatePhotoHint();
