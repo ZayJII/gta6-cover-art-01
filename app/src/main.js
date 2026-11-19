@@ -400,6 +400,26 @@ if (shot) {
       document.body.classList.add('shot-cover');
     }
 
+    // Parse query params FIRST to get layout and size BEFORE assigning panelPhotos
+    const query = new URLSearchParams(location.search);
+    const queryLayout = query.get('layout');
+    const querySize = query.get('size');
+
+    // Determine the effective layout based on query + export size remapping
+    let effectiveLayout = layout || queryLayout || 'mosaic';
+    let effectiveSize = size || querySize || '1080x1080';
+
+    // If layout is 'mosaic' but size triggers remapping in drawCover, use the packed layout
+    if (effectiveLayout === 'mosaic') {
+      if (effectiveSize === '1080x1080') effectiveLayout = 'mosaic-1080';
+      else if (effectiveSize === '1080x1350') effectiveLayout = 'mosaic-1350';
+      else if (effectiveSize === '1920x1080') effectiveLayout = 'mosaic-1920';
+    }
+
+    currentLayout = effectiveLayout;
+    currentSize = effectiveSize;
+    currentGrade = grade || 'vice-sunset';
+
     // Load ALL sample photos for cover shots (different photo per panel)
     // For editor shot, also load all samples and use the same panel map
     if (shot.startsWith('cover') || shot === 'editor') {
@@ -408,8 +428,8 @@ if (shot) {
         SAMPLE_PHOTOS.map(name => loadImage(`samples/${name}.jpg`))
       );
 
-      // Assign photos to each panel using correct map for each layout
-      const layoutObj = LAYOUTS[currentLayout] || LAYOUTS['mosaic'];
+      // Assign photos to each panel using correct map for the RESOLVED layout
+      const layoutObj = LAYOUTS[currentLayout] || LAYOUTS['mosaic-1080'];
       if (currentLayout === 'mosaic-1080') {
         panelPhotos = COVER_PANEL_PHOTO_MAP_1080.slice(0, layoutObj.length);
       } else if (currentLayout === 'mosaic-1350') {
@@ -434,9 +454,6 @@ if (shot) {
     }
 
     captionInput.value = text;
-    currentLayout = layout || 'mosaic';
-    currentGrade = grade || 'vice-sunset';
-    currentSize = size || '1080x1080';
 
     document.querySelectorAll('.layout-btn').forEach(b => b.classList.toggle('active', b.dataset.layout === currentLayout));
     document.querySelectorAll('.grade-btn').forEach(b => b.classList.toggle('active', b.dataset.grade === currentGrade));
@@ -453,10 +470,11 @@ if (shot) {
       const cropMap = {};
 
       if (currentLayout === 'mosaic-1080' || currentLayout === 'mosaic-1350' || currentLayout === 'mosaic-1920') {
-        // Packed 6 photo + emblem layouts: 7 panels, emblem at index 3
-        // panelNames: p1,p2,p3 = top row (indices 0,1,2); p5,p6,p7 = bottom row (indices 4,5,6)
-        const panelNames = ['p1', 'p2', 'p3', 'p5', 'p6', 'p7'];
-        const layoutIndices = [0, 1, 2, 4, 5, 6];
+        // Packed 6 photo + emblem layouts: 7 panels, emblem at index 4
+        // Layout order: [0=HERO(boulevard), 1=moto, 2=supercar, 3=neon, 4=EMBLEM, 5=pier, 6=marina]
+        // panelNames map to: p1=HERO, p2=moto, p3=supercar, p4=neon, p5=pier, p6=marina
+        const panelNames = ['p1', 'p2', 'p3', 'p4', 'p5', 'p6'];
+        const layoutIndices = [0, 1, 2, 3, 5, 6]; // skip index 4 (emblem)
         panelNames.forEach((name, idx) => {
           if (shotCrops[name]) cropMap[layoutIndices[idx]] = shotCrops[name];
         });
@@ -514,8 +532,8 @@ if (shot) {
               photos.push(img6);
               crops.push(createDefaultCrop(img6, getPanelAspect(0)));
 
-              // Auto-assign using correct map for current layout
-              const layoutObj = LAYOUTS[currentLayout] || LAYOUTS['mosaic'];
+              // Auto-assign using correct map for current layout (now default is mosaic-1080)
+              const layoutObj = LAYOUTS[currentLayout] || LAYOUTS['mosaic-1080'];
               if (currentLayout === 'mosaic-1080') {
                 panelPhotos = COVER_PANEL_PHOTO_MAP_1080.slice(0, layoutObj.length);
               } else if (currentLayout === 'mosaic-1350') {
@@ -555,6 +573,10 @@ if (shot) {
   });
 }
 
-// Initial setup
+// Initial setup - use packed layout as default instead of legacy mosaic
+currentLayout = 'mosaic-1080';
 resizeCanvas();
 updatePhotoHint();
+
+// Update active layout button
+document.querySelectorAll('.layout-btn').forEach(b => b.classList.toggle('active', b.dataset.layout === currentLayout));

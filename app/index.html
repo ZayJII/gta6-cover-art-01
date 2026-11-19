@@ -9,9 +9,15 @@
 <body>
 <main class="app">
   <section class="controls" id="controls">
-    <header class="controls-header">
-      <h1>NEON FOLIO</h1>
-      <p class="tagline">Multi-panel GTA-style cover art</p>
+    <header class="controls-header studio-header">
+      <div class="header-brand">
+        <h1 class="studio-title">NEON FOLIO</h1>
+        <span class="studio-badge">COVER STUDIO</span>
+      </div>
+      <div class="header-actions">
+        <button type="button" class="export-btn header-export" id="export-btn" title="Export current size">Export PNG</button>
+        <button type="button" class="export-btn export-all header-export" id="export-all-btn" title="Export all 3 sizes">Export All 3 Sizes</button>
+      </div>
     </header>
 
     <!-- Step indicator -->
@@ -45,19 +51,41 @@
     <div class="control-group">
       <h2>2. Layout</h2>
       <div class="layout-presets" id="layout-presets" role="radiogroup" aria-label="Layout preset">
-        <button type="button" class="layout-btn active" data-layout="mosaic" title="GTA VI-style mosaic grid (default)">
+        <button type="button" class="layout-btn active" data-layout="mosaic-1080" title="Packed 6-photo mosaic (1080×1080 default)">
           <svg viewBox="0 0 100 100">
-            <rect x="2" y="2" width="24" height="28" fill="currentColor"/>
-            <rect x="28" y="2" width="41" height="28" fill="currentColor"/>
-            <rect x="71" y="2" width="24" height="28" fill="currentColor"/>
-            <rect x="2" y="33" width="24" height="33" fill="currentColor"/>
-            <rect x="28" y="33" width="41" height="33" fill="none" stroke="currentColor" stroke-width="2"/>
-            <rect x="71" y="33" width="24" height="33" fill="currentColor"/>
-            <rect x="2" y="69" width="33" height="28" fill="currentColor"/>
-            <rect x="37" y="69" width="24" height="28" fill="currentColor"/>
-            <rect x="64" y="69" width="33" height="28" fill="currentColor"/>
+            <rect x="2" y="2" width="30" height="42" fill="currentColor"/>
+            <rect x="34" y="2" width="31" height="42" fill="currentColor"/>
+            <rect x="67" y="2" width="30" height="42" fill="currentColor"/>
+            <rect x="2" y="46" width="95" height="18" fill="none" stroke="currentColor" stroke-width="2"/>
+            <rect x="2" y="66" width="30" height="30" fill="currentColor"/>
+            <rect x="34" y="66" width="31" height="30" fill="currentColor"/>
+            <rect x="67" y="66" width="30" height="30" fill="currentColor"/>
           </svg>
-          <span class="preset-label">Mosaic</span>
+          <span class="preset-label">Mosaic 1080</span>
+        </button>
+        <button type="button" class="layout-btn" data-layout="mosaic-1350" title="Packed 6-photo mosaic (1080×1350 portrait)">
+          <svg viewBox="0 0 100 100">
+            <rect x="2" y="2" width="30" height="38" fill="currentColor"/>
+            <rect x="34" y="2" width="31" height="38" fill="currentColor"/>
+            <rect x="67" y="2" width="30" height="38" fill="currentColor"/>
+            <rect x="2" y="42" width="95" height="18" fill="none" stroke="currentColor" stroke-width="2"/>
+            <rect x="2" y="62" width="30" height="34" fill="currentColor"/>
+            <rect x="34" y="62" width="31" height="34" fill="currentColor"/>
+            <rect x="67" y="62" width="30" height="34" fill="currentColor"/>
+          </svg>
+          <span class="preset-label">Mosaic 1350</span>
+        </button>
+        <button type="button" class="layout-btn" data-layout="mosaic-1920" title="Packed 6-photo mosaic (1920×1080 landscape)">
+          <svg viewBox="0 0 100 100">
+            <rect x="2" y="2" width="30" height="42" fill="currentColor"/>
+            <rect x="34" y="2" width="31" height="42" fill="currentColor"/>
+            <rect x="67" y="2" width="30" height="42" fill="currentColor"/>
+            <rect x="2" y="46" width="95" height="18" fill="none" stroke="currentColor" stroke-width="2"/>
+            <rect x="2" y="66" width="30" height="30" fill="currentColor"/>
+            <rect x="34" y="66" width="31" height="30" fill="currentColor"/>
+            <rect x="67" y="66" width="30" height="30" fill="currentColor"/>
+          </svg>
+          <span class="preset-label">Mosaic 1920</span>
         </button>
         <button type="button" class="layout-btn" data-layout="hero-left" title="Hero left, three right">
           <svg viewBox="0 0 100 100"><rect x="2" y="2" width="64" height="96" fill="currentColor"/><rect x="68" y="2" width="30" height="30"/><rect x="68" y="34" width="30" height="30"/><rect x="68" y="66" width="30" height="30"/></svg>
@@ -103,15 +131,11 @@
     </div>
 
     <div class="control-group">
-      <h2>3. Export</h2>
+      <h2>3. Export Size</h2>
       <div class="size-presets" id="size-presets" role="radiogroup" aria-label="Export size">
         <button type="button" class="size-btn active" data-size="1080x1080">1080 × 1080</button>
         <button type="button" class="size-btn" data-size="1080x1350">1080 × 1350</button>
         <button type="button" class="size-btn" data-size="1920x1080">1920 × 1080</button>
-      </div>
-      <div class="export-actions">
-        <button type="button" class="export-btn" id="export-btn">Export PNG</button>
-        <button type="button" class="export-btn export-all" id="export-all-btn">Export All 3 Sizes</button>
       </div>
       <p class="status" id="status" role="status" aria-live="polite"></p>
     </div>

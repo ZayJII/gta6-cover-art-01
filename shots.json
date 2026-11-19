@@ -1,6 +1,6 @@
 [
-  { "name": "1-cover.jpg", "query": "?shot=cover&caption=VICE%20AFTER%20DARK&layout=mosaic&grade=vice-sunset&size=1080x1080", "w": 1080, "h": 1080 },
-  { "name": "2-editor.jpg", "query": "?shot=editor&caption=NEON%20FOLIO&layout=mosaic&grade=vice-sunset&size=1080x1080", "w": 1280, "h": 720 },
-  { "name": "3-cover-1350.jpg", "query": "?shot=cover&caption=VICE%20AFTER%20DARK&layout=mosaic&grade=vice-sunset&size=1080x1350", "w": 1080, "h": 1350 },
-  { "name": "4-cover-1920.jpg", "query": "?shot=cover&caption=VICE%20AFTER%20DARK&layout=mosaic&grade=vice-sunset&size=1920x1080", "w": 1920, "h": 1080 }
+  { "name": "1-cover.jpg", "query": "?shot=cover&caption=VICE%20AFTER%20DARK&layout=mosaic-1920&grade=vice-sunset&size=1920x1080", "w": 1920, "h": 1080 },
+  { "name": "2-editor.jpg", "query": "?shot=editor&caption=NEON%20FOLIO&layout=mosaic-1080&grade=vice-sunset&size=1080x1080", "w": 1280, "h": 720 },
+  { "name": "3-cover-1350.jpg", "query": "?shot=cover&caption=VICE%20AFTER%20DARK&layout=mosaic-1350&grade=vice-sunset&size=1080x1350", "w": 1080, "h": 1350 },
+  { "name": "4-cover-1080.jpg", "query": "?shot=cover&caption=VICE%20AFTER%20DARK&layout=mosaic-1080&grade=vice-sunset&size=1080x1080", "w": 1080, "h": 1080 }
 ]

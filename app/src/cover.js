@@ -4,64 +4,66 @@
  */
 
 // ============================================================
-// Layout presets: irregular tiled vignette grid (GTA VI official cover style)
+// Layout presets: packed hero collage (GTA VI official cover style)
 // Coordinates are normalized 0..1 including outer frame
+// 7 panels total: 6 photos + 1 emblem (index 3 = emblem hole, aligned with 7-slot maps)
 // ============================================================
 export const LAYOUTS = {
-  // Default 1080x1080: 6 photo panels + emblem (7 total), using all 6 sample photos once
+  // Packed hero collage for 1080x1080 (square)
+  // Hero panel (boulevard, face visible) on left, 5 irregular tiles on right
   'mosaic-1080': [
-    // Row 1: 3 equal panels across top
-    { x: 0.029, y: 0.029, w: 0.300, h: 0.442 },   // P1 - left
-    { x: 0.345, y: 0.029, w: 0.310, h: 0.442 },   // P2 - center
-    { x: 0.671, y: 0.029, w: 0.300, h: 0.442 },   // P3 - right
-    // EMBLEM - full width typographic plate (center)
-    { x: 0.029, y: 0.485, w: 0.942, h: 0.180, isEmblem: true }, // P4 - emblem plate
-    // Row 2: 3 equal panels across bottom
-    { x: 0.029, y: 0.685, w: 0.300, h: 0.286 },   // P5 - bottom left
-    { x: 0.345, y: 0.685, w: 0.310, h: 0.286 },   // P6 - bottom center
-    { x: 0.671, y: 0.685, w: 0.300, h: 0.286 }    // P7 - bottom right
+    // Hero panel - large, left side, full height (boulevard - index 1 in samples)
+    { x: 0.025, y: 0.025, w: 0.550, h: 0.950 },   // P0 - HERO (left, large)
+    // Top-right cluster: 3 panels stacked
+    { x: 0.595, y: 0.025, w: 0.380, h: 0.280 },   // P1 - top right (moto)
+    { x: 0.595, y: 0.325, w: 0.380, h: 0.320 },   // P2 - mid right (supercar)
+    { x: 0.595, y: 0.665, w: 0.380, h: 0.310 },   // P3 - bottom right (neon)
+    // EMBLEM - centered overlay plate for wordmark/subtitle
+    { x: 0.025, y: 0.420, w: 0.950, h: 0.220, isEmblem: true }, // P4 - emblem plate (center)
+    // Bottom-left: 2 panels below hero
+    { x: 0.025, y: 0.680, w: 0.250, h: 0.295 },   // P5 - bottom left (pier)
+    { x: 0.295, y: 0.680, w: 0.280, h: 0.295 }    // P6 - bottom mid (marina)
   ],
-  // Default: irregular mosaic grid matching GTA VI box art (legacy 9-panel)
+  // Default: legacy 9-panel mosaic (kept for backward compatibility)
   'mosaic': [
-    // Row 1
-    { x: 0.029, y: 0.029, w: 0.249, h: 0.289 },   // P1 - action (small)
-    { x: 0.294, y: 0.029, w: 0.412, h: 0.289 },   // P2 - hero (wider)
-    { x: 0.722, y: 0.029, w: 0.249, h: 0.289 },   // P3 - action (small)
-    // Row 2
-    { x: 0.029, y: 0.334, w: 0.249, h: 0.334 },   // P4 - tall side portrait
-    // EMBLEM - typographic plate (center, overlaps slightly)
-    { x: 0.294, y: 0.300, w: 0.412, h: 0.420, isEmblem: true }, // P5 - emblem plate
-    { x: 0.722, y: 0.334, w: 0.249, h: 0.334 },   // P6 - tall side portrait
-    // Row 3
-    { x: 0.029, y: 0.684, w: 0.331, h: 0.287 },   // P7 - wide vehicle
-    { x: 0.376, y: 0.684, w: 0.248, h: 0.287 },   // P8 - center
-    { x: 0.640, y: 0.684, w: 0.331, h: 0.287 }    // P9 - wide vehicle/wildlife
+    { x: 0.029, y: 0.029, w: 0.249, h: 0.289 },
+    { x: 0.294, y: 0.029, w: 0.412, h: 0.289 },
+    { x: 0.722, y: 0.029, w: 0.249, h: 0.289 },
+    { x: 0.029, y: 0.334, w: 0.249, h: 0.334 },
+    { x: 0.294, y: 0.300, w: 0.412, h: 0.420, isEmblem: true },
+    { x: 0.722, y: 0.334, w: 0.249, h: 0.334 },
+    { x: 0.029, y: 0.684, w: 0.331, h: 0.287 },
+    { x: 0.376, y: 0.684, w: 0.248, h: 0.287 },
+    { x: 0.640, y: 0.684, w: 0.331, h: 0.287 }
   ],
-  // Packed 6 photo + emblem layout for 1080x1350 (portrait) - same idea as mosaic-1080
+  // Packed hero collage for 1080x1350 (portrait)
+  // Hero panel (boulevard) at top, 5 irregular tiles below
   'mosaic-1350': [
-    // Row 1: 3 equal panels across top
-    { x: 0.029, y: 0.029, w: 0.300, h: 0.400 },   // P1 - top left
-    { x: 0.345, y: 0.029, w: 0.310, h: 0.400 },   // P2 - top center
-    { x: 0.671, y: 0.029, w: 0.300, h: 0.400 },   // P3 - top right
-    // EMBLEM - full width typographic plate (center)
-    { x: 0.029, y: 0.445, w: 0.942, h: 0.180, isEmblem: true }, // P4 - emblem plate
-    // Row 2: 3 equal panels across bottom
-    { x: 0.029, y: 0.645, w: 0.300, h: 0.326 },   // P5 - bottom left
-    { x: 0.345, y: 0.645, w: 0.310, h: 0.326 },   // P6 - bottom center
-    { x: 0.671, y: 0.645, w: 0.300, h: 0.326 }    // P7 - bottom right
+    // Hero panel - top, wide (boulevard - face visible)
+    { x: 0.025, y: 0.025, w: 0.950, h: 0.420 },   // P0 - HERO (top, wide)
+    // Middle row: 3 panels
+    { x: 0.025, y: 0.465, w: 0.300, h: 0.260 },   // P1 - mid left (moto)
+    { x: 0.345, y: 0.465, w: 0.310, h: 0.260 },   // P2 - mid center (supercar)
+    { x: 0.675, y: 0.465, w: 0.300, h: 0.260 },   // P3 - mid right (neon)
+    // EMBLEM - centered overlay plate
+    { x: 0.025, y: 0.340, w: 0.950, h: 0.180, isEmblem: true }, // P4 - emblem plate
+    // Bottom row: 2 panels
+    { x: 0.025, y: 0.745, w: 0.470, h: 0.230 },   // P5 - bottom left (pier)
+    { x: 0.505, y: 0.745, w: 0.470, h: 0.230 }    // P6 - bottom right (marina)
   ],
-  // Packed 6 photo + emblem layout for 1920x1080 (landscape) - same idea as mosaic-1080
+  // Packed hero collage for 1920x1080 (landscape)
+  // Hero panel (boulevard) on left, 5 irregular tiles on right
   'mosaic-1920': [
-    // Row 1: 3 equal panels across top
-    { x: 0.029, y: 0.029, w: 0.300, h: 0.442 },   // P1 - top left
-    { x: 0.345, y: 0.029, w: 0.310, h: 0.442 },   // P2 - top center
-    { x: 0.671, y: 0.029, w: 0.300, h: 0.442 },   // P3 - top right
-    // EMBLEM - full width typographic plate (center)
-    { x: 0.029, y: 0.485, w: 0.942, h: 0.180, isEmblem: true }, // P4 - emblem plate
-    // Row 2: 3 equal panels across bottom
-    { x: 0.029, y: 0.685, w: 0.300, h: 0.286 },   // P5 - bottom left
-    { x: 0.345, y: 0.685, w: 0.310, h: 0.286 },   // P6 - bottom center
-    { x: 0.671, y: 0.685, w: 0.300, h: 0.286 }    // P7 - bottom right
+    // Hero panel - left side, full height (boulevard - face visible)
+    { x: 0.020, y: 0.020, w: 0.480, h: 0.960 },   // P0 - HERO (left, tall)
+    // Right side: 5 irregular panels in a packed grid
+    { x: 0.515, y: 0.020, w: 0.230, h: 0.300 },   // P1 - top right (moto)
+    { x: 0.760, y: 0.020, w: 0.220, h: 0.300 },   // P2 - top far right (supercar)
+    { x: 0.515, y: 0.335, w: 0.465, h: 0.310 },   // P3 - mid right wide (neon)
+    // EMBLEM - centered overlay plate
+    { x: 0.020, y: 0.350, w: 0.960, h: 0.180, isEmblem: true }, // P4 - emblem plate
+    { x: 0.515, y: 0.660, w: 0.230, h: 0.320 },   // P5 - bottom right (pier)
+    { x: 0.760, y: 0.660, w: 0.220, h: 0.320 }    // P6 - bottom far right (marina)
   ],
   // Legacy layouts kept as options
   'hero-left': [
