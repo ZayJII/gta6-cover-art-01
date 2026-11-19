@@ -88,35 +88,64 @@ export const GRADES = {
       { stop: 0.60, color: [0xDE, 0x92, 0xC1] },  // pink
       { stop: 1.00, color: [0xFE, 0xF7, 0xDB] }   // cream rim
     ],
-    // Gradient map stops (luma → color)
+    // Gradient map stops (luma → color) - DISABLED for cinematic default (use identity)
     gradientMap: [
-      { stop: 0.00, color: [0x20, 0x00, 0x2F] },  // deep plum shadow
-      { stop: 0.15, color: [0x34, 0x5F, 0xCF] },  // cobalt
-      { stop: 0.35, color: [0x8B, 0x40, 0xBF] },  // mid violet
-      { stop: 0.55, color: [0xE8, 0x52, 0xCF] },  // magenta
-      { stop: 0.75, color: [0xFF, 0x68, 0x7F] },  // hot pink
-      { stop: 1.00, color: [0xFF, 0xB6, 0x45] }   // orange/gold highlight
+      { stop: 0.00, color: [0x00, 0x00, 0x00] },
+      { stop: 0.50, color: [0x80, 0x80, 0x80] },
+      { stop: 1.00, color: [0xFF, 0xFF, 0xFF] }
     ],
     // Frame/gutter/ink colour
     frameColor: '#20002F',
     inkColor: '#20002F',
     deepInkColor: '#120026',
-    // Posterize levels (softened: 12-16 for readable painted look)
-    posterizeLevels: 14,
-    // Edge ink strength (softened: 0.35-0.55)
-    edgeInkStrength: 0.45,
-    // Grain opacity
-    grainOpacity: 0.06,
-    // Bloom
-    bloom: { threshold: 0.78, strength: 0.25 },
-    // Contrast/saturation boost (softened: 1.15-1.25)
-    contrast: 1.20,
-    saturation: 1.20,
+    // Posterize levels - DISABLED for cinematic default (set to 256 = no posterize)
+    posterizeLevels: 256,
+    // Edge ink strength - subtle for cinematic
+    edgeInkStrength: 0.15,
+    // Grain opacity - fine grain
+    grainOpacity: 0.03,
+    // Bloom - gentle glow on highlights
+    bloom: { threshold: 0.85, strength: 0.15 },
+    // Contrast/saturation - gentle S-curve, warm highlights
+    contrast: 1.12,
+    saturation: 1.08,
     // Caption colors
     captionFill: '#FFFFFF',
     captionStroke: '#20002F',
     captionShadow: '#20002F',
     // Wordmark
+    wordmarkFill: '#FFFFFF',
+    wordmarkStroke: '#20002F'
+  },
+  // Optional Comic/Poster preset with the old posterize+gradient-map+ink path
+  'comic-poster': {
+    name: 'Comic Poster',
+    skyGradient: [
+      { stop: 0.00, color: [0x65, 0x5D, 0xA6] },
+      { stop: 0.30, color: [0x9F, 0x75, 0xB7] },
+      { stop: 0.60, color: [0xDE, 0x92, 0xC1] },
+      { stop: 1.00, color: [0xFE, 0xF7, 0xDB] }
+    ],
+    gradientMap: [
+      { stop: 0.00, color: [0x20, 0x00, 0x2F] },
+      { stop: 0.15, color: [0x34, 0x5F, 0xCF] },
+      { stop: 0.35, color: [0x8B, 0x40, 0xBF] },
+      { stop: 0.55, color: [0xE8, 0x52, 0xCF] },
+      { stop: 0.75, color: [0xFF, 0x68, 0x7F] },
+      { stop: 1.00, color: [0xFF, 0xB6, 0x45] }
+    ],
+    frameColor: '#20002F',
+    inkColor: '#20002F',
+    deepInkColor: '#120026',
+    posterizeLevels: 14,
+    edgeInkStrength: 0.45,
+    grainOpacity: 0.06,
+    bloom: { threshold: 0.78, strength: 0.25 },
+    contrast: 1.20,
+    saturation: 1.20,
+    captionFill: '#FFFFFF',
+    captionStroke: '#20002F',
+    captionShadow: '#20002F',
     wordmarkFill: '#FFFFFF',
     wordmarkStroke: '#20002F'
   },
@@ -549,35 +578,47 @@ function applyBloom(data, w, h, bloom) {
 
 /**
  * Full illustrated filter pipeline for a panel
+ * Cinematic default (vice-sunset): skips gradient map and posterize
+ * Comic/Poster preset: uses full pipeline with gradient map and posterize
  */
 function applyIllustratedFilter(ctx, w, h, grade) {
-  // 1. Contrast + saturation
+  // 1. Contrast + saturation (gentle S-curve)
   let imgData = ctx.getImageData(0, 0, w, h);
   applyContrastSaturation(imgData.data, w, h, grade.contrast, grade.saturation);
   ctx.putImageData(imgData, 0, 0);
 
-  // 2. Sky gradient replacement/tint
+  // 2. Sky gradient replacement/tint (only on sky-like regions)
   applySkyGradient(ctx, w, h, grade);
 
-  // 3. Gradient map
-  imgData = ctx.getImageData(0, 0, w, h);
-  applyGradientMap(imgData.data, w, h, grade.gradientMap);
-  ctx.putImageData(imgData, 0, 0);
+  // 3. Gradient map - SKIP for cinematic (identity map means no change)
+  // Check if gradientMap is identity (no-op)
+  const isIdentityMap = grade.gradientMap.length === 3 &&
+    grade.gradientMap[0].stop === 0.00 && grade.gradientMap[0].color[0] === 0 && grade.gradientMap[0].color[1] === 0 && grade.gradientMap[0].color[2] === 0 &&
+    grade.gradientMap[1].stop === 0.50 && grade.gradientMap[1].color[0] === 128 && grade.gradientMap[1].color[1] === 128 && grade.gradientMap[1].color[2] === 128 &&
+    grade.gradientMap[2].stop === 1.00 && grade.gradientMap[2].color[0] === 255 && grade.gradientMap[2].color[1] === 255 && grade.gradientMap[2].color[2] === 255;
 
-  // 4. Posterize
-  imgData = ctx.getImageData(0, 0, w, h);
-  applyPosterize(imgData.data, grade.posterizeLevels);
-  ctx.putImageData(imgData, 0, 0);
+  if (!isIdentityMap) {
+    imgData = ctx.getImageData(0, 0, w, h);
+    applyGradientMap(imgData.data, w, h, grade.gradientMap);
+    ctx.putImageData(imgData, 0, 0);
+  }
 
-  // 5. Edge ink
+  // 4. Posterize - SKIP for cinematic (256 levels = no posterize)
+  if (grade.posterizeLevels < 256) {
+    imgData = ctx.getImageData(0, 0, w, h);
+    applyPosterize(imgData.data, grade.posterizeLevels);
+    ctx.putImageData(imgData, 0, 0);
+  }
+
+  // 5. Edge ink - subtle for cinematic
   applyEdgeInk(ctx, w, h, grade.inkColor, grade.edgeInkStrength);
 
-  // 6. Grain
+  // 6. Grain - fine grain
   imgData = ctx.getImageData(0, 0, w, h);
   applyGrain(imgData.data, grade.grainOpacity);
   ctx.putImageData(imgData, 0, 0);
 
-  // 7. Bloom
+  // 7. Bloom - gentle glow on highlights
   imgData = ctx.getImageData(0, 0, w, h);
   applyBloom(imgData.data, w, h, grade.bloom);
   ctx.putImageData(imgData, 0, 0);
