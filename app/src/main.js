@@ -422,18 +422,9 @@ if (shot) {
 
       const layoutObj = LAYOUTS[currentLayout] || LAYOUTS['mosaic'];
       const panelCount = layoutObj.length;
-      panelCrops = new Array(panelCount).fill(null);
-      for (const [key, panelIdx] of Object.entries(cropMap)) {
-        const idx = parseInt(key, 10);
-        if (!isNaN(idx) && shotCrops[key] && idx < panelCount) {
-          panelCrops[idx] = shotCrops[key];
-        }
-      }
-      // Fill any missing with default
+      panelCrops = new Array(panelCount);
       for (let i = 0; i < panelCount; i++) {
-        if (!panelCrops[i]) {
-          panelCrops[i] = { x: 0.5, y: 0.5, scale: 1 };
-        }
+        panelCrops[i] = cropMap[i] || { x: 0.5, y: 0.5, scale: 1 };
       }
     }
     redraw(panelCrops);
