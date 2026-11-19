@@ -66,7 +66,7 @@ body.shot-cover canvas { width: 100vw; height: 100vh; box-shadow: none; backgrou
 .hint { font-size: 11px; color: var(--fg-muted); line-height: 1.4; }
 
 /* Layout presets */
-.layout-presets { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.layout-presets { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .layout-btn { aspect-ratio: 1; background: var(--panel-bg); border: 2px solid var(--border); border-radius: 8px; cursor: pointer; padding: 8px; display: flex; align-items: center; justify-content: center; transition: border-color 0.2s, background 0.2s, transform 0.1s; }
 .layout-btn svg { width: 100%; height: 100%; color: var(--fg-muted); }
 .layout-btn:hover { border-color: var(--accent-dim); background: rgba(123, 44, 191, 0.15); }

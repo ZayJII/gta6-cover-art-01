@@ -9,36 +9,79 @@
 // Distinct crop presets for each panel to create varied vignettes
 // Each crop: { x, y, scale } where x,y are 0..1 normalized center, scale is relative to panel
 const SHOT_CROPS = {
-  'cover': { // Default cover (1080x1080) - hero-left layout
-    hero: { x: 0.5, y: 0.45, scale: 0.85 },       // Face/upper body centered, slightly zoomed
-    topRight: { x: 0.3, y: 0.3, scale: 0.5 },     // Tight crop on face/hands
-    midRight: { x: 0.7, y: 0.6, scale: 0.6 },     // Sky/horizon or car detail
-    bottomRight: { x: 0.5, y: 0.8, scale: 0.7 }   // Water/ground detail
+  'cover': { // Default cover (1080x1080) - mosaic layout (9 panels, 8 image panels + emblem)
+    p1: { x: 0.5, y: 0.4, scale: 0.75 },     // Top-left action - moto wheelie
+    p2: { x: 0.5, y: 0.45, scale: 0.85 },    // Top-center hero - boulevard portrait
+    p3: { x: 0.5, y: 0.3, scale: 0.6 },      // Top-right action - supercar detail
+    p4: { x: 0.5, y: 0.5, scale: 0.8 },      // Mid-left tall - pier bust
+    // emblem skipped (typographic plate)
+    p6: { x: 0.5, y: 0.4, scale: 0.75 },     // Mid-right tall - neon boardwalk
+    p7: { x: 0.5, y: 0.35, scale: 0.7 },     // Bottom-left wide - supercar wide
+    p8: { x: 0.5, y: 0.5, scale: 0.8 },      // Bottom-center - marina dusk boat
+    p9: { x: 0.5, y: 0.6, scale: 0.7 }       // Bottom-right wide - marina flamingo/water
   },
-  'cover-1350': { // 1080x1350 portrait - hero-top layout
-    hero: { x: 0.5, y: 0.4, scale: 0.9 },         // Full figure centered
-    bottomLeft: { x: 0.2, y: 0.25, scale: 0.45 }, // Face closeup
-    bottomMid: { x: 0.75, y: 0.6, scale: 0.55 },  // Car/vehicle detail
-    bottomRight: { x: 0.5, y: 0.85, scale: 0.5 }  // Water/reflection
+  'cover-1350': { // 1080x1350 portrait - mosaic-1350 layout
+    p1: { x: 0.5, y: 0.35, scale: 0.8 },
+    p2: { x: 0.5, y: 0.4, scale: 0.9 },
+    p3: { x: 0.5, y: 0.3, scale: 0.65 },
+    p4: { x: 0.5, y: 0.45, scale: 0.85 },
+    p6: { x: 0.5, y: 0.4, scale: 0.8 },
+    p7: { x: 0.5, y: 0.35, scale: 0.75 },
+    p8: { x: 0.5, y: 0.5, scale: 0.85 },
+    p9: { x: 0.5, y: 0.55, scale: 0.75 }
   },
-  'cover-1920': { // 1920x1080 landscape - hero-left layout
-    hero: { x: 0.5, y: 0.45, scale: 0.9 },        // Wide cinematic, duo or single centered
-    topRight: { x: 0.35, y: 0.3, scale: 0.5 },    // Face/hands tight
-    midRight: { x: 0.65, y: 0.55, scale: 0.55 },  // Car/sunset sky
-    bottomRight: { x: 0.5, y: 0.8, scale: 0.6 }   // Water/ground
+  'cover-1920': { // 1920x1080 landscape - mosaic-1920 layout
+    p1: { x: 0.5, y: 0.4, scale: 0.75 },
+    p2: { x: 0.5, y: 0.45, scale: 0.85 },
+    p3: { x: 0.5, y: 0.3, scale: 0.6 },
+    p4: { x: 0.5, y: 0.5, scale: 0.8 },
+    p6: { x: 0.5, y: 0.4, scale: 0.75 },
+    p7: { x: 0.5, y: 0.35, scale: 0.7 },
+    p8: { x: 0.5, y: 0.5, scale: 0.8 },
+    p9: { x: 0.5, y: 0.6, scale: 0.7 }
+  },
+  // Legacy layouts
+  'hero-left': {
+    hero: { x: 0.5, y: 0.45, scale: 0.85 },
+    topRight: { x: 0.3, y: 0.3, scale: 0.5 },
+    midRight: { x: 0.7, y: 0.6, scale: 0.6 },
+    bottomRight: { x: 0.5, y: 0.8, scale: 0.7 }
+  },
+  'hero-right': {
+    hero: { x: 0.5, y: 0.45, scale: 0.85 },
+    topLeft: { x: 0.3, y: 0.3, scale: 0.5 },
+    midLeft: { x: 0.7, y: 0.6, scale: 0.6 },
+    bottomLeft: { x: 0.5, y: 0.8, scale: 0.7 }
+  },
+  'hero-top': {
+    hero: { x: 0.5, y: 0.4, scale: 0.9 },
+    bottomLeft: { x: 0.2, y: 0.25, scale: 0.45 },
+    bottomMid: { x: 0.75, y: 0.6, scale: 0.55 },
+    bottomRight: { x: 0.5, y: 0.85, scale: 0.5 }
+  },
+  'hero-bottom': {
+    hero: { x: 0.5, y: 0.5, scale: 0.9 },
+    topLeft: { x: 0.2, y: 0.25, scale: 0.45 },
+    topMid: { x: 0.75, y: 0.6, scale: 0.55 },
+    topRight: { x: 0.5, y: 0.85, scale: 0.5 }
   }
 };
 
-export async function runShot(shot, query, load) {
-  // Hide UI for cover shots
-  if (shot.startsWith('cover')) {
-    document.body.classList.add('shot-cover');
-  }
+// Sample photo filenames (without .jpg)
+const SAMPLE_PHOTOS = ['pier', 'boulevard', 'neon-boardwalk', 'moto-wheelie', 'supercar-deco', 'marina-dusk'];
 
+// Panel-to-photo mapping for cover shots (8 image panels, skipping emblem at index 4)
+// Mosaic layout has 9 panels: indices 0-8, where index 4 is the emblem (isEmblem: true)
+// The 8 image panels are at layout indices: 0,1,2,3,5,6,7,8
+// Mapping: P1(0)=moto-wheelie(3), P2(1)=boulevard(1), P3(2)=supercar-deco(4), P4(3)=pier(0),
+//          P6(5)=neon-boardwalk(2), P7(6)=marina-dusk(5), P8(7)=moto-wheelie(3 diff crop), P9(8)=marina-dusk(5 diff crop)
+const COVER_PANEL_PHOTO_MAP = [3, 1, 4, 0, 2, 5, 3, 5]; // indices into SAMPLE_PHOTOS for the 8 image panels
+
+export async function runShot(shot, query, load) {
   // Parse parameters
   const photo = query.get('photo') ?? 'pier';
   const caption = query.get('caption') ?? 'VICE AFTER DARK';
-  const layout = query.get('layout') ?? 'hero-left';
+  const layout = query.get('layout') ?? 'mosaic';
   const grade = query.get('grade') ?? 'vice-sunset';
   const size = query.get('size') ?? '1080x1080';
 
@@ -56,3 +99,6 @@ export async function runShot(shot, query, load) {
     window.__shotReady = true;
   }));
 }
+
+// Export for main.js to use
+export { SAMPLE_PHOTOS, COVER_PANEL_PHOTO_MAP };

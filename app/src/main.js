@@ -4,11 +4,10 @@
  */
 
 import { drawCover, loadImage, createDefaultCrop, LAYOUTS, GRADES, EXPORT_SIZES } from './cover.js';
-import { runShot } from './shots.js';
+import { runShot, SAMPLE_PHOTOS, COVER_PANEL_PHOTO_MAP } from './shots.js';
 
 // Global hook for shot crops
 window.__applyShotCrops = (crops) => {
-  // This will be set after photos are loaded
   window.__pendingShotCrops = crops;
 };
 
@@ -25,11 +24,11 @@ const photoHint = document.getElementById('photo-hint');
 
 // State
 let photos = [];              // Loaded Image objects
-let panelPhotos = [0, 0, 0, 0]; // Which photo index goes to each panel
+let panelPhotos = [];         // Which photo index goes to each panel
 let crops = [];               // Crop state per photo: { x, y, scale }
 let selectedPanel = 0;        // Currently selected panel index
 let selectedPhotoIndex = 0;   // Currently selected photo thumbnail
-let currentLayout = 'hero-left';
+let currentLayout = 'mosaic';
 let currentGrade = 'vice-sunset';
 let currentSize = '1080x1080';
 let isDragging = false;
@@ -114,15 +113,24 @@ function removePhoto(idx) {
 // Get panel aspect ratio for crop calculations
 function getPanelAspect(panelIdx) {
   const layout = LAYOUTS[currentLayout];
+  if (!layout || panelIdx >= layout.length) return 1;
   const panel = layout[panelIdx];
+  if (panel.isEmblem) return 1;
   return panel.w / panel.h;
+}
+
+// Get number of non-emblem panels
+function getPanelCount() {
+  const layout = LAYOUTS[currentLayout];
+  if (!layout) return 4;
+  return layout.filter(p => !p.isEmblem).length;
 }
 
 // Handle photo input
 photoInput.addEventListener('change', async (e) => {
   const files = Array.from(e.target.files);
   for (const file of files) {
-    if (photos.length >= 10) break; // Limit
+    if (photos.length >= 10) break;
     try {
       const img = await loadImage(URL.createObjectURL(file));
       photos.push(img);
@@ -152,8 +160,10 @@ layoutPresets.addEventListener('click', (e) => {
   if (!btn) return;
   currentLayout = btn.dataset.layout;
   document.querySelectorAll('.layout-btn').forEach(b => b.classList.toggle('active', b === btn));
+
   // Reset panel assignments when layout changes
-  panelPhotos = [0, 0, 0, 0].map((_, i) => Math.min(i, photos.length - 1));
+  const panelCount = getPanelCount();
+  panelPhotos = Array.from({ length: panelCount }, (_, i) => Math.min(i, photos.length - 1));
   selectedPanel = 0;
   updateThumbnails();
   redraw();
@@ -193,8 +203,10 @@ function getCanvasCoords(e) {
 
 function getPanelAtPoint(x, y) {
   const layout = LAYOUTS[currentLayout];
+  if (!layout) return null;
   for (let i = 0; i < layout.length; i++) {
     const panel = layout[i];
+    if (panel.isEmblem) continue;
     const px = panel.x * canvas.width;
     const py = panel.y * canvas.height;
     const pw = panel.w * canvas.width;
@@ -212,7 +224,6 @@ canvas.addEventListener('mousedown', (e) => {
   if (panelIdx !== null) {
     selectedPanel = panelIdx;
     updateThumbnails();
-    // Check if click is on the selected panel's photo (for drag)
     if (photos.length > 0) {
       isDragging = true;
       dragStart = coords;
@@ -228,12 +239,13 @@ canvas.addEventListener('mousemove', (e) => {
   const coords = getCanvasCoords(e);
   const photoIdx = panelPhotos[selectedPanel];
   const crop = crops[photoIdx];
-  const panel = LAYOUTS[currentLayout][selectedPanel];
+  const layout = LAYOUTS[currentLayout];
+  const panel = layout[selectedPanel];
+  if (!panel) return;
   const panelW = panel.w * canvas.width;
   const panelH = panel.h * canvas.height;
   const photo = photos[photoIdx];
 
-  // Pan: drag moves the crop window
   const dx = (coords.x - dragStart.x) / panelW;
   const dy = (coords.y - dragStart.y) / panelH;
 
@@ -266,14 +278,14 @@ canvas.addEventListener('wheel', (e) => {
   const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
   const newScale = Math.max(0.15, Math.min(3, crop.scale * zoomFactor));
 
-  // Zoom toward/away from mouse position
-  const panel = LAYOUTS[currentLayout][panelIdx];
+  const layout = LAYOUTS[currentLayout];
+  const panel = layout[panelIdx];
+  if (!panel) return;
   const panelW = panel.w * canvas.width;
   const panelH = panel.h * canvas.height;
   const mouseRelX = (coords.x - panel.x * canvas.width) / panelW;
   const mouseRelY = (coords.y - panel.y * canvas.height) / panelH;
 
-  // Adjust crop position to zoom toward cursor
   const scaleRatio = newScale / crop.scale;
   crop.x = Math.max(0, Math.min(1, crop.x + (mouseRelX - crop.x) * (1 - 1 / scaleRatio)));
   crop.y = Math.max(0, Math.min(1, crop.y + (mouseRelY - crop.y) * (1 - 1 / scaleRatio)));
@@ -303,14 +315,12 @@ exportBtn.addEventListener('click', () => {
   exportBtn.disabled = true;
   exportBtn.textContent = 'Exporting...';
 
-  // Draw at export size on offscreen canvas
   const size = EXPORT_SIZES[currentSize];
   const offscreen = document.createElement('canvas');
   offscreen.width = size.width;
   offscreen.height = size.height;
   const offCtx = offscreen.getContext('2d');
 
-  // Use drawCover with export size
   drawCover(offscreen, photos, panelPhotos, crops, currentLayout, currentGrade, captionInput.value, currentSize);
 
   offscreen.toBlob((blob) => {
@@ -331,16 +341,41 @@ exportBtn.addEventListener('click', () => {
 const shot = new URLSearchParams(location.search).get('shot');
 if (shot) {
   runShot(shot, new URLSearchParams(location.search), async (sample, text, layout, grade, size) => {
-    // Load sample photo
-    const img = await loadImage(sample);
-    photos = [img];
-    const panelAspect = getPanelAspect(0);
-    crops = [createDefaultCrop(img, panelAspect)];
-    panelPhotos = [0, 0, 0, 0];
+    // Hide UI for cover shots
+    if (shot.startsWith('cover')) {
+      document.body.classList.add('shot-cover');
+    }
+
+    // Load ALL sample photos for cover shots (different photo per panel)
+    // For editor shot, also load all samples and use the same panel map
+    if (shot.startsWith('cover') || shot === 'editor') {
+      // Load all 6 sample photos
+      photos = await Promise.all(
+        SAMPLE_PHOTOS.map(name => loadImage(`samples/${name}.jpg`))
+      );
+
+      // Assign different photo to each panel (8 image panels, skipping emblem)
+      const panelCount = getPanelCount();
+      panelPhotos = COVER_PANEL_PHOTO_MAP.slice(0, panelCount);
+
+      // Create default crops for each photo
+      const panelAspect = getPanelAspect(0);
+      crops = photos.map(img => createDefaultCrop(img, panelAspect));
+    } else {
+      // Fallback: load single photo
+      const img = await loadImage(sample);
+      photos = [img];
+      const panelCount = getPanelCount();
+      panelPhotos = Array.from({ length: panelCount }, (_, i) => 0);
+      const panelAspect = getPanelAspect(0);
+      crops = [createDefaultCrop(img, panelAspect)];
+    }
+
     captionInput.value = text;
-    currentLayout = layout || 'hero-left';
+    currentLayout = layout || 'mosaic';
     currentGrade = grade || 'vice-sunset';
     currentSize = size || '1080x1080';
+
     document.querySelectorAll('.layout-btn').forEach(b => b.classList.toggle('active', b.dataset.layout === currentLayout));
     document.querySelectorAll('.grade-btn').forEach(b => b.classList.toggle('active', b.dataset.grade === currentGrade));
     document.querySelectorAll('.size-btn').forEach(b => b.classList.toggle('active', b.dataset.size === currentSize));
@@ -353,9 +388,15 @@ if (shot) {
     let panelCrops = null;
     if (window.__pendingShotCrops) {
       const shotCrops = window.__pendingShotCrops;
-      // Map shot crop keys to panel indices based on layout
       const cropMap = {};
-      if (currentLayout === 'hero-left' || currentLayout === 'hero-right') {
+
+      if (currentLayout.startsWith('mosaic')) {
+        // Map 9 panels (excluding emblem)
+        const panelNames = ['p1', 'p2', 'p3', 'p4', 'p6', 'p7', 'p8', 'p9'];
+        panelNames.forEach((name, idx) => {
+          if (shotCrops[name]) cropMap[idx] = shotCrops[name];
+        });
+      } else if (currentLayout === 'hero-left' || currentLayout === 'hero-right') {
         cropMap.hero = 0;
         cropMap.topRight = 1;
         cropMap.midRight = 2;
@@ -371,14 +412,15 @@ if (shot) {
         cropMap.topMid = 2;
         cropMap.topRight = 3;
       }
-      panelCrops = [null, null, null, null];
+
+      panelCrops = new Array(panelCount).fill(null);
       for (const [key, panelIdx] of Object.entries(cropMap)) {
-        if (shotCrops[key]) {
+        if (shotCrops[key] && panelIdx < panelCount) {
           panelCrops[panelIdx] = shotCrops[key];
         }
       }
       // Fill any missing with default
-      for (let i = 0; i < 4; i++) {
+      for (let i = 0; i < panelCount; i++) {
         if (!panelCrops[i]) {
           panelCrops[i] = { x: 0.5, y: 0.5, scale: 1 };
         }
@@ -394,8 +436,43 @@ if (shot) {
     loadImage('samples/boulevard.jpg').then(img2 => {
       photos.push(img2);
       crops.push(createDefaultCrop(img2, getPanelAspect(0)));
-      selectPhoto(0);
-      updateThumbnails();
+      loadImage('samples/neon-boardwalk.jpg').then(img3 => {
+        photos.push(img3);
+        crops.push(createDefaultCrop(img3, getPanelAspect(0)));
+        loadImage('samples/moto-wheelie.jpg').then(img4 => {
+          photos.push(img4);
+          crops.push(createDefaultCrop(img4, getPanelAspect(0)));
+          loadImage('samples/supercar-deco.jpg').then(img5 => {
+            photos.push(img5);
+            crops.push(createDefaultCrop(img5, getPanelAspect(0)));
+            loadImage('samples/marina-dusk.jpg').then(img6 => {
+              photos.push(img6);
+              crops.push(createDefaultCrop(img6, getPanelAspect(0)));
+
+              // Auto-assign to first 8 panels (excluding emblem)
+              const panelCount = getPanelCount();
+              panelPhotos = Array.from({ length: panelCount }, (_, i) => Math.min(i, photos.length - 1));
+              selectPhoto(0);
+              updateThumbnails();
+              updatePhotoHint();
+              redraw();
+            }).catch(() => {
+              updatePhotoHint();
+              redraw();
+            });
+          }).catch(() => {
+            updatePhotoHint();
+            redraw();
+          });
+        }).catch(() => {
+          updatePhotoHint();
+          redraw();
+        });
+      }).catch(() => {
+        updatePhotoHint();
+        redraw();
+      });
+    }).catch(() => {
       updatePhotoHint();
       redraw();
     });
