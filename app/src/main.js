@@ -6,6 +6,12 @@
 import { drawCover, loadImage, createDefaultCrop, LAYOUTS, GRADES, EXPORT_SIZES } from './cover.js';
 import { runShot } from './shots.js';
 
+// Global hook for shot crops
+window.__applyShotCrops = (crops) => {
+  // This will be set after photos are loaded
+  window.__pendingShotCrops = crops;
+};
+
 const canvas = document.getElementById('cover');
 const captionInput = document.getElementById('caption-input');
 const photoInput = document.getElementById('photo-input');
@@ -39,8 +45,8 @@ function resizeCanvas() {
 }
 
 // Redraw the cover
-function redraw() {
-  drawCover(canvas, photos, panelPhotos, crops, currentLayout, currentGrade, captionInput.value, currentSize);
+function redraw(panelCrops) {
+  drawCover(canvas, photos, panelPhotos, crops, currentLayout, currentGrade, captionInput.value, currentSize, panelCrops);
   updateThumbnailActiveStates();
 }
 
@@ -342,7 +348,43 @@ if (shot) {
     selectedPhotoIndex = 0;
     resizeCanvas();
     updateThumbnails();
-    redraw();
+
+    // Apply distinct crops per panel for cover shots
+    let panelCrops = null;
+    if (window.__pendingShotCrops) {
+      const shotCrops = window.__pendingShotCrops;
+      // Map shot crop keys to panel indices based on layout
+      const cropMap = {};
+      if (currentLayout === 'hero-left' || currentLayout === 'hero-right') {
+        cropMap.hero = 0;
+        cropMap.topRight = 1;
+        cropMap.midRight = 2;
+        cropMap.bottomRight = 3;
+      } else if (currentLayout === 'hero-top') {
+        cropMap.hero = 0;
+        cropMap.bottomLeft = 1;
+        cropMap.bottomMid = 2;
+        cropMap.bottomRight = 3;
+      } else if (currentLayout === 'hero-bottom') {
+        cropMap.hero = 0;
+        cropMap.topLeft = 1;
+        cropMap.topMid = 2;
+        cropMap.topRight = 3;
+      }
+      panelCrops = [null, null, null, null];
+      for (const [key, panelIdx] of Object.entries(cropMap)) {
+        if (shotCrops[key]) {
+          panelCrops[panelIdx] = shotCrops[key];
+        }
+      }
+      // Fill any missing with default
+      for (let i = 0; i < 4; i++) {
+        if (!panelCrops[i]) {
+          panelCrops[i] = { x: 0.5, y: 0.5, scale: 1 };
+        }
+      }
+    }
+    redraw(panelCrops);
   });
 } else {
   // Try to load sample photos on startup

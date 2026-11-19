@@ -125,7 +125,7 @@ const LINE_HEIGHT_RATIO = 1.05;    // Tight leading
  * Draws the caption as custom stacked lettering on the canvas
  * @param {CanvasRenderingContext2D} ctx - Canvas context
  * @param {string} text - Caption text (already uppercase)
- * @param {number} x - Left X position
+ * @param {number} x - Left X position (left edge of caption area)
  * @param {number} y - Baseline Y position (bottom of text block)
  * @param {number} maxWidth - Maximum width for the text block
  * @param {number} maxHeight - Maximum height for the text block
@@ -136,13 +136,10 @@ export function drawCaption(ctx, text, x, y, maxWidth, maxHeight, style) {
   if (!text.trim()) return { width: 0, height: 0, lines: [] };
 
   const words = text.trim().split(/\s+/);
-  const lines = [];
-  let currentLine = '';
 
-  // Calculate font size that fits
-  // Start with a size based on hero panel height
-  let fontSize = Math.min(maxWidth * 0.12, maxHeight * 0.35);
-  const minFontSize = 18;
+  // Calculate font size that fits - start with a reasonable estimate
+  let fontSize = Math.min(maxWidth * 0.11, maxHeight * 0.4);
+  const minFontSize = 16;
 
   ctx.textBaseline = 'alphabetic';
 
@@ -151,11 +148,11 @@ export function drawCaption(ctx, text, x, y, maxWidth, maxHeight, style) {
   let bestSize = minFontSize;
   let bestLines = [];
 
-  for (let iter = 0; iter < 20; iter++) {
+  for (let iter = 0; iter < 25; iter++) {
     const mid = (low + high) / 2;
     ctx.font = `700 ${mid}px 'Bungee', cursive`;
 
-    // Wrap words into lines
+    // Wrap words into lines - greedy algorithm
     const testLines = [];
     let testLine = '';
     for (const word of words) {
@@ -187,7 +184,8 @@ export function drawCaption(ctx, text, x, y, maxWidth, maxHeight, style) {
   ctx.font = `700 ${bestSize}px 'Bungee', cursive`;
   const lineHeight = bestSize * LINE_HEIGHT_RATIO;
   const totalHeight = bestLines.length * lineHeight;
-  const startY = y - (maxHeight - totalHeight) / 2; // Center vertically in allocated space
+  // Position so the bottom of the text block sits at y (the baseline)
+  const startY = y - totalHeight + bestSize * 0.8;
 
   // Draw each line with custom effects
   const renderedLines = [];
@@ -195,8 +193,8 @@ export function drawCaption(ctx, text, x, y, maxWidth, maxHeight, style) {
     const lineText = bestLines[i];
     const metrics = ctx.measureText(lineText);
     const lineWidth = metrics.width * (1 + LETTER_SPACING_RATIO);
-    const lineX = x + (maxWidth - lineWidth) / 2;
-    const lineY = startY + i * lineHeight + bestSize * 0.8; // Adjust for baseline
+    const lineX = x + (maxWidth - lineWidth) / 2; // Center horizontally
+    const lineY = startY + i * lineHeight + bestSize * 0.8;
 
     renderedLines.push({ text: lineText, x: lineX, y: lineY, width: lineWidth });
 
@@ -422,7 +420,7 @@ function drawPanel(ctx, panel, photo, crop, grade, isHero, ruleColor) {
 // ============================================================
 // Main drawCover function — renders the complete cover
 // ============================================================
-export function drawCover(canvas, photos, panelPhotos, crops, layoutName, gradeName, caption, exportSize) {
+export function drawCover(canvas, photos, panelPhotos, crops, layoutName, gradeName, caption, exportSize, panelCrops) {
   const ctx = canvas.getContext('2d');
   const { width: w, height: h } = exportSize ? EXPORT_SIZES[exportSize] : { width: canvas.width, height: canvas.height };
 
@@ -444,7 +442,8 @@ export function drawCover(canvas, photos, panelPhotos, crops, layoutName, gradeN
   layout.forEach((panel, i) => {
     const photoIndex = panelPhotos[i] ?? 0;
     const photo = photos[photoIndex];
-    const crop = crops[photoIndex] || { x: 0.5, y: 0.5, scale: 1 };
+    // Use per-panel crop if provided, otherwise fall back to per-photo crop
+    const crop = (panelCrops && panelCrops[i]) ? panelCrops[i] : (crops[photoIndex] || { x: 0.5, y: 0.5, scale: 1 });
     const isHero = i === 0;
 
     drawPanel(ctx, panel, photo, crop, grade, isHero, grade.ruleColor);
@@ -453,9 +452,11 @@ export function drawCover(canvas, photos, panelPhotos, crops, layoutName, gradeN
   // Draw caption on hero panel
   const heroPanel = layout[0];
   const captionX = heroPanel.x * w;
-  const captionY = (heroPanel.y + heroPanel.h) * h; // Bottom of hero panel
-  const captionW = heroPanel.w * w;
-  const captionH = heroPanel.h * h * 0.35; // Caption uses bottom 35% of hero panel
+  // Inset from bottom edge of hero panel with comfortable padding so caption sits fully inside
+  const bottomInset = Math.max(16, Math.round(h * 0.025)); // ~2.5% of height, min 16px
+  const captionY = (heroPanel.y + heroPanel.h) * h - bottomInset; // Baseline inset from bottom edge
+  const captionW = heroPanel.w * w * 0.92; // 92% of panel width, margins on sides
+  const captionH = heroPanel.h * h * 0.4; // Caption uses up to 40% of hero panel height
 
   if (caption.trim()) {
     drawCaption(ctx, caption.trim().toUpperCase(), captionX, captionY, captionW, captionH, grade);
