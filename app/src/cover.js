@@ -126,7 +126,7 @@ const LINE_HEIGHT_RATIO = 1.05;    // Tight leading
  * @param {CanvasRenderingContext2D} ctx - Canvas context
  * @param {string} text - Caption text (already uppercase)
  * @param {number} x - Left X position (left edge of caption area)
- * @param {number} y - Baseline Y position (bottom of text block)
+ * @param {number} y - Baseline Y position (bottom of text block including shadow)
  * @param {number} maxWidth - Maximum width for the text block
  * @param {number} maxHeight - Maximum height for the text block
  * @param {object} style - Caption style from grade
@@ -169,9 +169,17 @@ export function drawCaption(ctx, text, x, y, maxWidth, maxHeight, style) {
     if (testLine) testLines.push(testLine);
 
     const lineHeight = mid * LINE_HEIGHT_RATIO;
-    const totalHeight = testLines.length * lineHeight;
+    const shadowOffset = mid * 0.06;
+    // Full height from top of first line to bottom of last line's shadow
+    // = (n-1) * lineHeight + fontSize * 0.86 (baseline + shadow for last line)
+    // Top of first line ≈ startY (baseline - ascent ≈ baseline - 0.8*fontSize)
+    // Last line baseline = startY + (n-1)*lineHeight + mid*0.8
+    // Last line shadow bottom = last line baseline + shadowOffset
+    // = startY + (n-1)*lineHeight + mid*0.86
+    // Full height = y - startY = (n-1)*lineHeight + mid*0.86
+    const fullHeight = (testLines.length - 1) * lineHeight + mid * 0.86;
 
-    if (totalHeight <= maxHeight && testLines.every(l => ctx.measureText(l).width * (1 + LETTER_SPACING_RATIO) <= maxWidth)) {
+    if (fullHeight <= maxHeight && testLines.every(l => ctx.measureText(l).width * (1 + LETTER_SPACING_RATIO) <= maxWidth)) {
       bestSize = mid;
       bestLines = testLines;
       low = mid;
@@ -183,9 +191,15 @@ export function drawCaption(ctx, text, x, y, maxWidth, maxHeight, style) {
   // Use best size
   ctx.font = `700 ${bestSize}px 'Bungee', cursive`;
   const lineHeight = bestSize * LINE_HEIGHT_RATIO;
-  const totalHeight = bestLines.length * lineHeight;
-  // Position so the bottom of the text block sits at y (the baseline)
-  const startY = y - totalHeight + bestSize * 0.8;
+  const shadowOffset = bestSize * 0.06;
+  // Full height from top of first line to bottom of last line's shadow
+  const fullHeight = (bestLines.length - 1) * lineHeight + bestSize * 0.86;
+  // Position startY so the bottom of the last line's shadow sits exactly at y
+  // Last line baseline = startY + (n-1)*lineHeight + bestSize*0.8
+  // Last line shadow bottom = last line baseline + shadowOffset
+  // = startY + (n-1)*lineHeight + bestSize*0.86
+  // We want this = y, so:
+  const startY = y - (bestLines.length - 1) * lineHeight - bestSize * 0.86;
 
   // Draw each line with custom effects
   const renderedLines = [];
@@ -228,7 +242,7 @@ export function drawCaption(ctx, text, x, y, maxWidth, maxHeight, style) {
 
   return {
     width: maxWidth,
-    height: totalHeight,
+    height: fullHeight,
     lines: renderedLines
   };
 }
