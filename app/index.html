@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NEON FOLIO — GTA-Style Cover Art</title>
+<link rel="stylesheet" href="./style.css">
+</head>
+<body>
+<main class="app">
+  <section class="controls" id="controls">
+    <header class="controls-header">
+      <h1>NEON FOLIO</h1>
+      <p class="tagline">Multi-panel GTA-style cover art</p>
+    </header>
+
+    <div class="control-group">
+      <h2>Photos</h2>
+      <label class="file-input">
+        <input type="file" id="photo-input" accept="image/*" multiple>
+        <span>Add / replace photos</span>
+      </label>
+      <div class="photo-thumbnails" id="photo-thumbnails" aria-label="Loaded photos"></div>
+      <p class="hint" id="photo-hint">Click a panel, then click a thumbnail to assign. Drag to pan, wheel to zoom.</p>
+    </div>
+
+    <div class="control-group">
+      <h2>Layout</h2>
+      <div class="layout-presets" id="layout-presets" role="radiogroup" aria-label="Layout preset">
+        <button type="button" class="layout-btn active" data-layout="hero-left" title="Hero left, three right">
+          <svg viewBox="0 0 100 100"><rect x="2" y="2" width="64" height="96" fill="currentColor"/><rect x="68" y="2" width="30" height="30"/><rect x="68" y="34" width="30" height="30"/><rect x="68" y="66" width="30" height="30"/></svg>
+        </button>
+        <button type="button" class="layout-btn" data-layout="hero-top" title="Hero top, three bottom">
+          <svg viewBox="0 0 100 100"><rect x="2" y="2" width="96" height="64" fill="currentColor"/><rect x="2" y="68" width="30" height="30"/><rect x="34" y="68" width="30" height="30"/><rect x="66" y="68" width="30" height="30"/></svg>
+        </button>
+        <button type="button" class="layout-btn" data-layout="hero-right" title="Hero right, three left">
+          <svg viewBox="0 0 100 100"><rect x="2" y="2" width="30" height="30"/><rect x="2" y="34" width="30" height="30"/><rect x="2" y="66" width="30" height="30"/><rect x="34" y="2" width="64" height="96" fill="currentColor"/></svg>
+        </button>
+        <button type="button" class="layout-btn" data-layout="hero-bottom" title="Hero bottom, three top">
+          <svg viewBox="0 0 100 100"><rect x="2" y="2" width="30" height="30"/><rect x="34" y="2" width="30" height="30"/><rect x="66" y="2" width="30" height="30"/><rect x="2" y="34" width="96" height="64" fill="currentColor"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="control-group">
+      <h2>Colour Grade</h2>
+      <div class="grade-presets" id="grade-presets" role="radiogroup" aria-label="Colour grade">
+        <button type="button" class="grade-btn active" data-grade="vice-sunset" style="background: linear-gradient(135deg, #3B0A5C, #7B2CBF, #FF2D95, #FF6B2B);">Vice Sunset</button>
+        <button type="button" class="grade-btn" data-grade="neon-night" style="background: linear-gradient(135deg, #0B1D4A, #00E5FF, #FF2D95, #FFE08A);">Neon Night</button>
+        <button type="button" class="grade-btn" data-grade="palm-gold" style="background: linear-gradient(135deg, #1A3A4A, #40E0D0, #FF7A62, #FFE08A);">Palm Gold</button>
+      </div>
+    </div>
+
+    <div class="control-group">
+      <h2>Caption</h2>
+      <input type="text" id="caption-input" maxlength="48" placeholder="VICE AFTER DARK" value="VICE AFTER DARK" spellcheck="false">
+      <div class="caption-hint">Stacked condensed capitals — type to see it live on the cover</div>
+    </div>
+
+    <div class="control-group">
+      <h2>Export</h2>
+      <div class="size-presets" id="size-presets" role="radiogroup" aria-label="Export size">
+        <button type="button" class="size-btn active" data-size="1080x1080">1080 × 1080</button>
+        <button type="button" class="size-btn" data-size="1080x1350">1080 × 1350</button>
+        <button type="button" class="size-btn" data-size="1920x1080">1920 × 1080</button>
+      </div>
+      <button type="button" class="export-btn" id="export-btn">Export PNG</button>
+      <p class="status" id="status" role="status" aria-live="polite"></p>
+    </div>
+
+    <footer class="controls-footer">
+      <span class="wordmark">NEON FOLIO</span>
+      <span class="version">v1.0</span>
+    </footer>
+  </section>
+
+  <canvas id="cover" width="1080" height="1080" aria-label="Live cover preview"></canvas>
+</main>
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>
