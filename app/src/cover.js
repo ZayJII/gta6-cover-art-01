@@ -37,29 +37,31 @@ export const LAYOUTS = {
     { x: 0.376, y: 0.684, w: 0.248, h: 0.287 },   // P8 - center
     { x: 0.640, y: 0.684, w: 0.331, h: 0.287 }    // P9 - wide vehicle/wildlife
   ],
-  // Adapted for 1080x1350 (portrait) - more vertical room for emblem/hero
+  // Packed 6 photo + emblem layout for 1080x1350 (portrait) - same idea as mosaic-1080
   'mosaic-1350': [
-    { x: 0.029, y: 0.029, w: 0.249, h: 0.300 },
-    { x: 0.294, y: 0.029, w: 0.412, h: 0.300 },
-    { x: 0.722, y: 0.029, w: 0.249, h: 0.300 },
-    { x: 0.029, y: 0.349, w: 0.249, h: 0.350 },
-    { x: 0.294, y: 0.300, w: 0.412, h: 0.440, isEmblem: true },
-    { x: 0.722, y: 0.349, w: 0.249, h: 0.350 },
-    { x: 0.029, y: 0.719, w: 0.331, h: 0.252 },
-    { x: 0.376, y: 0.719, w: 0.248, h: 0.252 },
-    { x: 0.640, y: 0.719, w: 0.331, h: 0.252 }
+    // Row 1: 3 equal panels across top
+    { x: 0.029, y: 0.029, w: 0.300, h: 0.400 },   // P1 - top left
+    { x: 0.345, y: 0.029, w: 0.310, h: 0.400 },   // P2 - top center
+    { x: 0.671, y: 0.029, w: 0.300, h: 0.400 },   // P3 - top right
+    // EMBLEM - full width typographic plate (center)
+    { x: 0.029, y: 0.445, w: 0.942, h: 0.180, isEmblem: true }, // P4 - emblem plate
+    // Row 2: 3 equal panels across bottom
+    { x: 0.029, y: 0.645, w: 0.300, h: 0.326 },   // P5 - bottom left
+    { x: 0.345, y: 0.645, w: 0.310, h: 0.326 },   // P6 - bottom center
+    { x: 0.671, y: 0.645, w: 0.300, h: 0.326 }    // P7 - bottom right
   ],
-  // Adapted for 1920x1080 (landscape) - widen hero/emblem
+  // Packed 6 photo + emblem layout for 1920x1080 (landscape) - same idea as mosaic-1080
   'mosaic-1920': [
-    { x: 0.029, y: 0.029, w: 0.249, h: 0.289 },
-    { x: 0.294, y: 0.029, w: 0.412, h: 0.289 },
-    { x: 0.722, y: 0.029, w: 0.249, h: 0.289 },
-    { x: 0.029, y: 0.334, w: 0.249, h: 0.334 },
-    { x: 0.294, y: 0.300, w: 0.412, h: 0.420, isEmblem: true },
-    { x: 0.722, y: 0.334, w: 0.249, h: 0.334 },
-    { x: 0.029, y: 0.684, w: 0.331, h: 0.287 },
-    { x: 0.376, y: 0.684, w: 0.248, h: 0.287 },
-    { x: 0.640, y: 0.684, w: 0.331, h: 0.287 }
+    // Row 1: 3 equal panels across top
+    { x: 0.029, y: 0.029, w: 0.300, h: 0.442 },   // P1 - top left
+    { x: 0.345, y: 0.029, w: 0.310, h: 0.442 },   // P2 - top center
+    { x: 0.671, y: 0.029, w: 0.300, h: 0.442 },   // P3 - top right
+    // EMBLEM - full width typographic plate (center)
+    { x: 0.029, y: 0.485, w: 0.942, h: 0.180, isEmblem: true }, // P4 - emblem plate
+    // Row 2: 3 equal panels across bottom
+    { x: 0.029, y: 0.685, w: 0.300, h: 0.286 },   // P5 - bottom left
+    { x: 0.345, y: 0.685, w: 0.310, h: 0.286 },   // P6 - bottom center
+    { x: 0.671, y: 0.685, w: 0.300, h: 0.286 }    // P7 - bottom right
   ],
   // Legacy layouts kept as options
   'hero-left': [
@@ -241,9 +243,9 @@ const LETTER_SPACING_RATIO = -0.02;
 const LINE_HEIGHT_RATIO = 0.92; // Tighter leading
 
 /**
- * Draws the caption as custom stacked lettering on the canvas
+ * Draws the caption as custom stacked lettering on the canvas with gradient fill
  */
-export function drawCaption(ctx, text, x, y, maxWidth, maxHeight, style) {
+export function drawCaption(ctx, text, x, y, maxWidth, maxHeight, style, subtitle = '') {
   if (!text.trim()) return { width: 0, height: 0, lines: [] };
 
   const words = text.trim().split(/\s+/);
@@ -306,6 +308,12 @@ export function drawCaption(ctx, text, x, y, maxWidth, maxHeight, style) {
 
     renderedLines.push({ text: lineText, x: lineX, y: lineY, width: lineWidth });
 
+    // Create gradient fill for the line
+    const lineGrad = ctx.createLinearGradient(lineX, lineY - bestSize, lineX, lineY + bestSize * 0.3);
+    lineGrad.addColorStop(0, style.captionFill);           // White at top
+    lineGrad.addColorStop(0.5, '#FFE08A');                 // Warm gold mid
+    lineGrad.addColorStop(1, style.captionFill);           // White at bottom
+
     // Draw with letter-by-letter for tight tracking
     let charX = lineX;
     for (const char of lineText) {
@@ -322,8 +330,8 @@ export function drawCaption(ctx, text, x, y, maxWidth, maxHeight, style) {
       ctx.lineJoin = 'round';
       ctx.strokeText(char, charX, lineY);
 
-      // Fill (main color - pure white)
-      ctx.fillStyle = style.captionFill;
+      // Fill with gradient
+      ctx.fillStyle = lineGrad;
       ctx.fillText(char, charX, lineY);
 
       // Inner highlight (cream hairline on top-left)
@@ -336,7 +344,43 @@ export function drawCaption(ctx, text, x, y, maxWidth, maxHeight, style) {
     }
   }
 
-  return { width: maxWidth, height: fullHeight, lines: renderedLines };
+  // Draw subtitle/tagline if provided
+  let subtitleHeight = 0;
+  if (subtitle.trim()) {
+    const subFontSize = Math.max(14, Math.round(bestSize * 0.35));
+    const subLineHeight = subFontSize * 1.3;
+    const subY = startY + fullHeight + subFontSize * 0.5;
+
+    ctx.font = `italic 400 ${subFontSize}px 'Bungee', cursive`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+
+    const subX = x + maxWidth / 2;
+    const subMetrics = ctx.measureText(subtitle.trim());
+    const subWidth = subMetrics.width;
+
+    // Subtitle shadow
+    ctx.fillStyle = style.captionShadow;
+    ctx.fillText(subtitle.trim(), subX + subFontSize * 0.05, subY + subFontSize * 0.05);
+
+    // Subtitle stroke
+    ctx.strokeStyle = style.captionStroke;
+    ctx.lineWidth = subFontSize * 0.06;
+    ctx.lineJoin = 'round';
+    ctx.strokeText(subtitle.trim(), subX, subY);
+
+    // Subtitle fill with gradient
+    const subGrad = ctx.createLinearGradient(subX - subWidth / 2, subY, subX + subWidth / 2, subY + subFontSize);
+    subGrad.addColorStop(0, '#FFE08A');
+    subGrad.addColorStop(0.5, '#FFB645');
+    subGrad.addColorStop(1, '#FFE08A');
+    ctx.fillStyle = subGrad;
+    ctx.fillText(subtitle.trim(), subX, subY);
+
+    subtitleHeight = subLineHeight + subFontSize * 0.5;
+  }
+
+  return { width: maxWidth, height: fullHeight + subtitleHeight, lines: renderedLines };
 }
 
 /**
@@ -367,11 +411,12 @@ export function drawWordmark(ctx, w, h, style) {
   ctx.lineJoin = 'round';
   ctx.strokeText(text, x, y);
 
-  // Fill with gradient
-  const grad = ctx.createLinearGradient(x - tw, y, x, y);
-  grad.addColorStop(0, style.wordmarkFill);
-  grad.addColorStop(0.5, style.captionStroke);
-  grad.addColorStop(1, style.wordmarkFill);
+  // Fill with vibrant gradient matching caption style
+  const grad = ctx.createLinearGradient(x - tw, y - fontSize, x, y);
+  grad.addColorStop(0, '#FFFFFF');      // White at top-left
+  grad.addColorStop(0.3, '#FFE08A');    // Warm gold
+  grad.addColorStop(0.7, '#FFB645');    // Deeper gold
+  grad.addColorStop(1, '#FFFFFF');      // White at bottom-right
   ctx.fillStyle = grad;
   ctx.fillText(text, x, y);
 }
@@ -1021,15 +1066,18 @@ function drawEmblemPlate(ctx, panel, w, h, grade) {
   ctx.strokeRect(px + outerLineWidth / 2, py + outerLineWidth / 2, panelW - outerLineWidth, panelH - outerLineWidth);
 }
 
-// Helper: Draw a palm silhouette using bezier curves
+// Helper: Draw a palm silhouette using bezier curves - realistic crown of fronds
 function drawPalmSilhouette(ctx, baseX, baseY, height, leanRight) {
   ctx.fillStyle = '#0A0D14';
-  ctx.beginPath();
 
   // Trunk (curved)
   const trunkWidth = Math.max(4, height * 0.02);
   const lean = leanRight ? height * 0.15 : -height * 0.15;
+  const trunkTopX = baseX + lean;
+  const trunkTopY = baseY - height;
 
+  // Draw trunk
+  ctx.beginPath();
   ctx.moveTo(baseX - trunkWidth / 2, baseY);
   ctx.quadraticCurveTo(
     baseX + lean * 0.3, baseY - height * 0.3,
@@ -1051,23 +1099,68 @@ function drawPalmSilhouette(ctx, baseX, baseY, height, leanRight) {
   ctx.closePath();
   ctx.fill();
 
-  // Fronds (palm leaves) - 5-7 fronds fanning out
-  const frondCount = 6;
+  // Draw realistic palm crown - 8-10 fronds in a full circular arrangement
+  // Each frond is a long feather-like shape with multiple leaflets
+  const frondCount = 9;
+  const crownRadius = height * 0.35;
+
   for (let f = 0; f < frondCount; f++) {
-    const angle = (f / (frondCount - 1) - 0.5) * Math.PI * 0.8; // -72° to +72°
-    const frondLength = height * (0.35 + Math.random() * 0.15);
-    const frondWidth = height * 0.08;
+    const angle = (f / frondCount) * Math.PI * 2; // Full 360° crown
+    const frondLength = crownRadius * (0.7 + Math.random() * 0.3);
+    const frondWidth = height * 0.06;
 
-    const tipX = baseX + lean + Math.sin(angle) * frondLength;
-    const tipY = baseY - height - Math.cos(angle) * frondLength;
-    const midX = baseX + lean + Math.sin(angle) * frondLength * 0.5;
-    const midY = baseY - height - Math.cos(angle) * frondLength * 0.5;
+    // Frond curves outward and slightly downward
+    const curveAmount = frondLength * 0.3;
+    const tipX = trunkTopX + Math.sin(angle) * frondLength;
+    const tipY = trunkTopY - Math.cos(angle) * frondLength * 0.6; // Slight upward angle
+    const ctrl1X = trunkTopX + Math.sin(angle) * frondLength * 0.3;
+    const ctrl1Y = trunkTopY - Math.cos(angle) * frondLength * 0.2;
+    const ctrl2X = trunkTopX + Math.sin(angle) * frondLength * 0.7 + Math.cos(angle) * curveAmount * 0.3;
+    const ctrl2Y = trunkTopY - Math.cos(angle) * frondLength * 0.5 + Math.sin(angle) * curveAmount * 0.3;
 
+    // Main frond spine (feather-like)
     ctx.beginPath();
-    ctx.moveTo(baseX + lean, baseY - height);
-    ctx.quadraticCurveTo(midX + Math.cos(angle) * frondWidth, midY - Math.sin(angle) * frondWidth, tipX, tipY);
-    ctx.quadraticCurveTo(midX - Math.cos(angle) * frondWidth, midY + Math.sin(angle) * frondWidth, baseX + lean, baseY - height);
+    ctx.moveTo(trunkTopX, trunkTopY);
+    ctx.bezierCurveTo(ctrl1X, ctrl1Y, ctrl2X, ctrl2Y, tipX, tipY);
+
+    // Add width to frond - create a feather shape
+    // Left edge of frond
+    ctx.bezierCurveTo(
+      tipX - Math.cos(angle) * frondWidth * 0.5, tipY - Math.sin(angle) * frondWidth * 0.5,
+      ctrl2X - Math.cos(angle) * frondWidth * 0.7, ctrl2Y - Math.sin(angle) * frondWidth * 0.7,
+      trunkTopX, trunkTopY
+    );
     ctx.fill();
+
+    // Add leaflets along the frond (smaller feathers on each side)
+    const leafletCount = 5;
+    for (let l = 1; l <= leafletCount; l++) {
+      const t = l / (leafletCount + 1);
+      const leafletLength = frondLength * 0.15 * (1 - t * 0.3);
+      const leafletAngle = angle + (Math.random() - 0.5) * 0.3; // Slight variation
+      const leafletBaseX = trunkTopX + Math.sin(angle) * frondLength * t * 0.8;
+      const leafletBaseY = trunkTopY - Math.cos(angle) * frondLength * t * 0.6;
+      const leafletTipX = leafletBaseX + Math.sin(leafletAngle) * leafletLength;
+      const leafletTipY = leafletBaseY - Math.cos(leafletAngle) * leafletLength;
+
+      ctx.beginPath();
+      ctx.moveTo(leafletBaseX, leafletBaseY);
+      ctx.quadraticCurveTo(
+        leafletBaseX + Math.sin(leafletAngle) * leafletLength * 0.5,
+        leafletBaseY - Math.cos(leafletAngle) * leafletLength * 0.5,
+        leafletTipX, leafletTipY
+      );
+      ctx.lineTo(
+        leafletTipX - Math.cos(leafletAngle) * 2,
+        leafletTipY - Math.sin(leafletAngle) * 2
+      );
+      ctx.quadraticCurveTo(
+        leafletBaseX + Math.sin(leafletAngle) * leafletLength * 0.5 - Math.cos(leafletAngle) * 1,
+        leafletBaseY - Math.cos(leafletAngle) * leafletLength * 0.5 - Math.sin(leafletAngle) * 1,
+        leafletBaseX, leafletBaseY
+      );
+      ctx.fill();
+    }
   }
 }
 
@@ -1158,7 +1251,10 @@ export function drawCover(canvas, photos, panelPhotos, crops, layoutName, gradeN
   }
 
   if (caption.trim()) {
-    drawCaption(ctx, caption.trim().toUpperCase(), captionX, captionY, captionW, captionH, grade);
+    const upperCaption = caption.trim().toUpperCase();
+    // Add a subtitle/tagline for the title scene
+    const subtitle = 'A NEON FOLIO PRODUCTION';
+    drawCaption(ctx, upperCaption, captionX, captionY, captionW, captionH, grade, subtitle);
   }
 
   // Draw wordmark

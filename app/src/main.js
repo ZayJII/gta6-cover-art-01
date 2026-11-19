@@ -4,7 +4,7 @@
  */
 
 import { drawCover, loadImage, createDefaultCrop, LAYOUTS, GRADES, EXPORT_SIZES } from './cover.js';
-import { runShot, SAMPLE_PHOTOS, COVER_PANEL_PHOTO_MAP } from './shots.js';
+import { runShot, SAMPLE_PHOTOS, COVER_PANEL_PHOTO_MAP, COVER_PANEL_PHOTO_MAP_1080, COVER_PANEL_PHOTO_MAP_1350, COVER_PANEL_PHOTO_MAP_1920 } from './shots.js';
 
 // Global hook for shot crops
 window.__applyShotCrops = (crops) => {
@@ -165,9 +165,15 @@ layoutPresets.addEventListener('click', (e) => {
   currentLayout = btn.dataset.layout;
   document.querySelectorAll('.layout-btn').forEach(b => b.classList.toggle('active', b === btn));
 
-  // Reset panel assignments when layout changes - use 9-slot map for mosaic layouts
+  // Reset panel assignments when layout changes - use appropriate map for each mosaic layout
   const layoutObj = LAYOUTS[currentLayout] || LAYOUTS['mosaic'];
-  if (currentLayout.startsWith('mosaic')) {
+  if (currentLayout === 'mosaic-1080') {
+    panelPhotos = COVER_PANEL_PHOTO_MAP_1080.slice(0, layoutObj.length);
+  } else if (currentLayout === 'mosaic-1350') {
+    panelPhotos = COVER_PANEL_PHOTO_MAP_1350.slice(0, layoutObj.length);
+  } else if (currentLayout === 'mosaic-1920') {
+    panelPhotos = COVER_PANEL_PHOTO_MAP_1920.slice(0, layoutObj.length);
+  } else if (currentLayout.startsWith('mosaic')) {
     panelPhotos = COVER_PANEL_PHOTO_MAP.slice(0, layoutObj.length);
   } else {
     const panelCount = layoutObj.filter(p => !p.isEmblem).length;
@@ -402,10 +408,17 @@ if (shot) {
         SAMPLE_PHOTOS.map(name => loadImage(`samples/${name}.jpg`))
       );
 
-      // Assign photos to each panel using 9-slot map (matching layout indices 0-8)
-      // Index 4 is emblem (-1 sentinel), so panelPhotos has 9 entries
+      // Assign photos to each panel using correct map for each layout
       const layoutObj = LAYOUTS[currentLayout] || LAYOUTS['mosaic'];
-      panelPhotos = COVER_PANEL_PHOTO_MAP.slice(0, layoutObj.length);
+      if (currentLayout === 'mosaic-1080') {
+        panelPhotos = COVER_PANEL_PHOTO_MAP_1080.slice(0, layoutObj.length);
+      } else if (currentLayout === 'mosaic-1350') {
+        panelPhotos = COVER_PANEL_PHOTO_MAP_1350.slice(0, layoutObj.length);
+      } else if (currentLayout === 'mosaic-1920') {
+        panelPhotos = COVER_PANEL_PHOTO_MAP_1920.slice(0, layoutObj.length);
+      } else {
+        panelPhotos = COVER_PANEL_PHOTO_MAP.slice(0, layoutObj.length);
+      }
 
       // Create default crops for each photo
       const panelAspect = getPanelAspect(0);
@@ -439,17 +452,18 @@ if (shot) {
       const shotCrops = window.__pendingShotCrops;
       const cropMap = {};
 
-      if (currentLayout.startsWith('mosaic')) {
-        let panelNames, layoutIndices;
-        if (currentLayout === 'mosaic-1080') {
-          // 7 panels: indices 0,1,2 are top row; 3 is emblem; 4,5,6 are bottom row
-          panelNames = ['p1', 'p2', 'p3', 'p5', 'p6', 'p7'];
-          layoutIndices = [0, 1, 2, 4, 5, 6];
-        } else {
-          // Legacy 9-panel mosaic: emblem at index 4
-          panelNames = ['p1', 'p2', 'p3', 'p4', 'p6', 'p7', 'p8', 'p9'];
-          layoutIndices = [0, 1, 2, 3, 5, 6, 7, 8];
-        }
+      if (currentLayout === 'mosaic-1080' || currentLayout === 'mosaic-1350' || currentLayout === 'mosaic-1920') {
+        // Packed 6 photo + emblem layouts: 7 panels, emblem at index 3
+        // panelNames: p1,p2,p3 = top row (indices 0,1,2); p5,p6,p7 = bottom row (indices 4,5,6)
+        const panelNames = ['p1', 'p2', 'p3', 'p5', 'p6', 'p7'];
+        const layoutIndices = [0, 1, 2, 4, 5, 6];
+        panelNames.forEach((name, idx) => {
+          if (shotCrops[name]) cropMap[layoutIndices[idx]] = shotCrops[name];
+        });
+      } else if (currentLayout.startsWith('mosaic')) {
+        // Legacy 9-panel mosaic: emblem at index 4
+        const panelNames = ['p1', 'p2', 'p3', 'p4', 'p6', 'p7', 'p8', 'p9'];
+        const layoutIndices = [0, 1, 2, 3, 5, 6, 7, 8];
         panelNames.forEach((name, idx) => {
           if (shotCrops[name]) cropMap[layoutIndices[idx]] = shotCrops[name];
         });
@@ -500,9 +514,17 @@ if (shot) {
               photos.push(img6);
               crops.push(createDefaultCrop(img6, getPanelAspect(0)));
 
-              // Auto-assign using 9-slot map (matching layout indices 0-8)
+              // Auto-assign using correct map for current layout
               const layoutObj = LAYOUTS[currentLayout] || LAYOUTS['mosaic'];
-              panelPhotos = COVER_PANEL_PHOTO_MAP.slice(0, layoutObj.length);
+              if (currentLayout === 'mosaic-1080') {
+                panelPhotos = COVER_PANEL_PHOTO_MAP_1080.slice(0, layoutObj.length);
+              } else if (currentLayout === 'mosaic-1350') {
+                panelPhotos = COVER_PANEL_PHOTO_MAP_1350.slice(0, layoutObj.length);
+              } else if (currentLayout === 'mosaic-1920') {
+                panelPhotos = COVER_PANEL_PHOTO_MAP_1920.slice(0, layoutObj.length);
+              } else {
+                panelPhotos = COVER_PANEL_PHOTO_MAP.slice(0, layoutObj.length);
+              }
               selectPhoto(0);
               updateThumbnails();
               updatePhotoHint();

@@ -18,25 +18,23 @@ const SHOT_CROPS = {
     p6: { x: 0.5, y: 0.4, scale: 0.75 },     // index 5 - Bottom-center - neon boardwalk
     p7: { x: 0.5, y: 0.35, scale: 0.7 }      // index 6 - Bottom-right - marina dusk (boat/water)
   },
-  'cover-1350': { // 1080x1350 portrait - mosaic-1350 layout
-    p1: { x: 0.5, y: 0.35, scale: 0.8 },
-    p2: { x: 0.5, y: 0.4, scale: 0.9 },
-    p3: { x: 0.5, y: 0.3, scale: 0.65 },
-    p4: { x: 0.5, y: 0.45, scale: 0.85 },
-    p6: { x: 0.5, y: 0.4, scale: 0.8 },
-    p7: { x: 0.5, y: 0.35, scale: 0.75 },
-    p8: { x: 0.5, y: 0.3, scale: 0.6 },      // Marina boat - wide crop
-    p9: { x: 0.5, y: 0.7, scale: 0.65 }      // Marina flamingos - low crop
+  'cover-1350': { // 1080x1350 portrait - mosaic-1350 layout (7 panels: 6 photos + emblem at index 3)
+    p1: { x: 0.5, y: 0.35, scale: 0.8 },     // index 0 - Top-left - moto wheelie
+    p2: { x: 0.5, y: 0.4, scale: 0.9 },      // index 1 - Top-center - boulevard portrait
+    p3: { x: 0.5, y: 0.3, scale: 0.65 },     // index 2 - Top-right - supercar detail
+    // index 3 is emblem (typographic plate) - skipped
+    p5: { x: 0.5, y: 0.45, scale: 0.85 },    // index 4 - Bottom-left - pier bust
+    p6: { x: 0.5, y: 0.4, scale: 0.8 },      // index 5 - Bottom-center - neon boardwalk
+    p7: { x: 0.5, y: 0.35, scale: 0.75 }     // index 6 - Bottom-right - marina dusk (boat/water)
   },
-  'cover-1920': { // 1920x1080 landscape - mosaic-1920 layout - FIX: hero crop intact (top-center not cut off)
-    p1: { x: 0.5, y: 0.4, scale: 0.75 },
-    p2: { x: 0.5, y: 0.4, scale: 0.8 },      // FIX: higher y (0.4 not 0.45) to keep top-center visible
-    p3: { x: 0.5, y: 0.3, scale: 0.6 },
-    p4: { x: 0.5, y: 0.5, scale: 0.8 },
-    p6: { x: 0.5, y: 0.4, scale: 0.75 },
-    p7: { x: 0.5, y: 0.35, scale: 0.7 },
-    p8: { x: 0.5, y: 0.3, scale: 0.6 },      // Marina boat - wide crop
-    p9: { x: 0.5, y: 0.7, scale: 0.65 }      // Marina flamingos - low crop
+  'cover-1920': { // 1920x1080 landscape - mosaic-1920 layout (7 panels: 6 photos + emblem at index 3)
+    p1: { x: 0.5, y: 0.4, scale: 0.75 },     // index 0 - Top-left - moto wheelie
+    p2: { x: 0.5, y: 0.4, scale: 0.8 },      // index 1 - Top-center - boulevard portrait (hero crop intact)
+    p3: { x: 0.5, y: 0.3, scale: 0.6 },      // index 2 - Top-right - supercar detail
+    // index 3 is emblem (typographic plate) - skipped
+    p5: { x: 0.5, y: 0.5, scale: 0.8 },      // index 4 - Bottom-left - pier bust
+    p6: { x: 0.5, y: 0.4, scale: 0.75 },     // index 5 - Bottom-center - neon boardwalk
+    p7: { x: 0.5, y: 0.35, scale: 0.7 }      // index 6 - Bottom-right - marina dusk (boat/water)
   },
   // Legacy layouts
   'hero-left': {
@@ -71,7 +69,7 @@ const SAMPLE_PHOTOS = ['pier', 'boulevard', 'neon-boardwalk', 'moto-wheelie', 's
 // Panel-to-photo mapping for cover shots — 7-slot map for mosaic-1080 (indices 0-6)
 // Index 3 is the emblem (hole/ignored). All 6 photos appear exactly once, no duplicates.
 // SAMPLE_PHOTOS: [0:pier, 1:boulevard, 2:neon-boardwalk, 3:moto-wheelie, 4:supercar-deco, 5:marina-dusk]
-const COVER_PANEL_PHOTO_MAP = [
+const COVER_PANEL_PHOTO_MAP_1080 = [
   3, // index 0 (p1): moto-wheelie - rider focused
   1, // index 1 (p2): boulevard - face visible
   4, // index 2 (p3): supercar-deco - detail crop
@@ -79,6 +77,43 @@ const COVER_PANEL_PHOTO_MAP = [
   0, // index 4 (p5): pier - bust/face visible
   2, // index 5 (p6): neon-boardwalk - neon scene
   5  // index 6 (p7): marina-dusk - boat/water scene
+];
+
+// Panel-to-photo mapping for mosaic-1350 (7 panels: 6 photos + emblem at index 3)
+// Same photo assignment as 1080 for visual consistency across sizes
+const COVER_PANEL_PHOTO_MAP_1350 = [
+  3, // index 0 (p1): moto-wheelie - rider focused
+  1, // index 1 (p2): boulevard - face visible
+  4, // index 2 (p3): supercar-deco - detail crop
+  -1, // index 3 (p4): EMBLEM HOLE (ignored)
+  0, // index 4 (p5): pier - bust/face visible
+  2, // index 5 (p6): neon-boardwalk - neon scene
+  5  // index 6 (p7): marina-dusk - boat/water scene
+];
+
+// Panel-to-photo mapping for mosaic-1920 (7 panels: 6 photos + emblem at index 3)
+// Same photo assignment as 1080 for visual consistency across sizes
+const COVER_PANEL_PHOTO_MAP_1920 = [
+  3, // index 0 (p1): moto-wheelie - rider focused
+  1, // index 1 (p2): boulevard - face visible
+  4, // index 2 (p3): supercar-deco - detail crop
+  -1, // index 3 (p4): EMBLEM HOLE (ignored)
+  0, // index 4 (p5): pier - bust/face visible
+  2, // index 5 (p6): neon-boardwalk - neon scene
+  5  // index 6 (p7): marina-dusk - boat/water scene
+];
+
+// Legacy 9-panel map (kept for 'mosaic' layout)
+const COVER_PANEL_PHOTO_MAP = [
+  3, // index 0 (p1): moto-wheelie
+  1, // index 1 (p2): boulevard
+  4, // index 2 (p3): supercar-deco
+  0, // index 3 (p4): pier
+  -1, // index 4 (p5): EMBLEM HOLE
+  2, // index 5 (p6): neon-boardwalk
+  5, // index 6 (p7): marina-dusk
+  0, // index 7 (p8): pier (duplicate)
+  5  // index 8 (p9): marina-dusk (duplicate)
 ];
 
 export async function runShot(shot, query, load) {
@@ -105,4 +140,4 @@ export async function runShot(shot, query, load) {
 }
 
 // Export for main.js to use
-export { SAMPLE_PHOTOS, COVER_PANEL_PHOTO_MAP };
+export { SAMPLE_PHOTOS, COVER_PANEL_PHOTO_MAP, COVER_PANEL_PHOTO_MAP_1080, COVER_PANEL_PHOTO_MAP_1350, COVER_PANEL_PHOTO_MAP_1920 };
