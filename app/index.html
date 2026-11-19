@@ -14,8 +14,26 @@
       <p class="tagline">Multi-panel GTA-style cover art</p>
     </header>
 
+    <!-- Step indicator -->
+    <nav class="step-indicator" aria-label="Workflow steps">
+      <ol class="steps">
+        <li class="step active" data-step="1">
+          <span class="step-num">1</span>
+          <span class="step-label">Add Photos</span>
+        </li>
+        <li class="step" data-step="2">
+          <span class="step-num">2</span>
+          <span class="step-label">Layout / Size</span>
+        </li>
+        <li class="step" data-step="3">
+          <span class="step-num">3</span>
+          <span class="step-label">Export PNG</span>
+        </li>
+      </ol>
+    </nav>
+
     <div class="control-group">
-      <h2>Photos</h2>
+      <h2>1. Photos</h2>
       <label class="file-input">
         <input type="file" id="photo-input" accept="image/*" multiple>
         <span>Add / replace photos</span>
@@ -25,7 +43,7 @@
     </div>
 
     <div class="control-group">
-      <h2>Layout</h2>
+      <h2>2. Layout</h2>
       <div class="layout-presets" id="layout-presets" role="radiogroup" aria-label="Layout preset">
         <button type="button" class="layout-btn active" data-layout="mosaic" title="GTA VI-style mosaic grid (default)">
           <svg viewBox="0 0 100 100">
@@ -39,46 +57,62 @@
             <rect x="37" y="69" width="24" height="28" fill="currentColor"/>
             <rect x="64" y="69" width="33" height="28" fill="currentColor"/>
           </svg>
+          <span class="preset-label">Mosaic</span>
         </button>
         <button type="button" class="layout-btn" data-layout="hero-left" title="Hero left, three right">
           <svg viewBox="0 0 100 100"><rect x="2" y="2" width="64" height="96" fill="currentColor"/><rect x="68" y="2" width="30" height="30"/><rect x="68" y="34" width="30" height="30"/><rect x="68" y="66" width="30" height="30"/></svg>
+          <span class="preset-label">Hero Left</span>
         </button>
         <button type="button" class="layout-btn" data-layout="hero-top" title="Hero top, three bottom">
           <svg viewBox="0 0 100 100"><rect x="2" y="2" width="96" height="64" fill="currentColor"/><rect x="2" y="68" width="30" height="30"/><rect x="34" y="68" width="30" height="30"/><rect x="66" y="68" width="30" height="30"/></svg>
+          <span class="preset-label">Hero Top</span>
         </button>
         <button type="button" class="layout-btn" data-layout="hero-right" title="Hero right, three left">
           <svg viewBox="0 0 100 100"><rect x="2" y="2" width="30" height="30"/><rect x="2" y="34" width="30" height="30"/><rect x="2" y="66" width="30" height="30"/><rect x="34" y="2" width="64" height="96" fill="currentColor"/></svg>
+          <span class="preset-label">Hero Right</span>
         </button>
         <button type="button" class="layout-btn" data-layout="hero-bottom" title="Hero bottom, three top">
           <svg viewBox="0 0 100 100"><rect x="2" y="2" width="30" height="30"/><rect x="34" y="2" width="30" height="30"/><rect x="66" y="2" width="30" height="30"/><rect x="2" y="34" width="96" height="64" fill="currentColor"/></svg>
+          <span class="preset-label">Hero Bottom</span>
         </button>
       </div>
     </div>
 
     <div class="control-group">
-      <h2>Colour Grade</h2>
+      <h2>2. Colour Grade</h2>
       <div class="grade-presets" id="grade-presets" role="radiogroup" aria-label="Colour grade">
-        <button type="button" class="grade-btn active" data-grade="vice-sunset" style="background: linear-gradient(135deg, #20002F, #345FCF, #8B40BF, #E852CF, #FFB645);" title="Cinematic photo grade (default)">Vice Sunset</button>
-        <button type="button" class="grade-btn" data-grade="neon-night" style="background: linear-gradient(135deg, #0A1020, #3B0A5C, #FF2D95, #00E5FF, #FFE08A);">Neon Night</button>
-        <button type="button" class="grade-btn" data-grade="palm-gold" style="background: linear-gradient(135deg, #1A3A4A, #40E0D0, #F4A261, #FF7A62, #FFE08A);">Palm Gold</button>
-        <button type="button" class="grade-btn" data-grade="comic-poster" style="background: linear-gradient(135deg, #20002F, #345FCF, #8B40BF, #E852CF, #FFB645); opacity: 0.85;">Comic Poster</button>
+        <button type="button" class="grade-btn active" data-grade="vice-sunset" style="background: linear-gradient(135deg, #20002F, #345FCF, #8B40BF, #E852CF, #FFB645);" title="Cinematic photo grade (default)">
+          <span class="grade-label">Vice Sunset</span>
+        </button>
+        <button type="button" class="grade-btn" data-grade="neon-night" style="background: linear-gradient(135deg, #0A1020, #3B0A5C, #FF2D95, #00E5FF, #FFE08A);">
+          <span class="grade-label">Neon Night</span>
+        </button>
+        <button type="button" class="grade-btn" data-grade="palm-gold" style="background: linear-gradient(135deg, #1A3A4A, #40E0D0, #F4A261, #FF7A62, #FFE08A);">
+          <span class="grade-label">Palm Gold</span>
+        </button>
+        <button type="button" class="grade-btn" data-grade="comic-poster" style="background: linear-gradient(135deg, #20002F, #345FCF, #8B40BF, #E852CF, #FFB645); opacity: 0.85;">
+          <span class="grade-label">Comic Poster</span>
+        </button>
       </div>
     </div>
 
     <div class="control-group">
-      <h2>Caption</h2>
+      <h2>2. Caption</h2>
       <input type="text" id="caption-input" maxlength="48" placeholder="VICE AFTER DARK" value="VICE AFTER DARK" spellcheck="false">
       <div class="caption-hint">Stacked condensed capitals — type to see it live on the cover</div>
     </div>
 
     <div class="control-group">
-      <h2>Export</h2>
+      <h2>3. Export</h2>
       <div class="size-presets" id="size-presets" role="radiogroup" aria-label="Export size">
         <button type="button" class="size-btn active" data-size="1080x1080">1080 × 1080</button>
         <button type="button" class="size-btn" data-size="1080x1350">1080 × 1350</button>
         <button type="button" class="size-btn" data-size="1920x1080">1920 × 1080</button>
       </div>
-      <button type="button" class="export-btn" id="export-btn">Export PNG</button>
+      <div class="export-actions">
+        <button type="button" class="export-btn" id="export-btn">Export PNG</button>
+        <button type="button" class="export-btn export-all" id="export-all-btn">Export All 3 Sizes</button>
+      </div>
       <p class="status" id="status" role="status" aria-live="polite"></p>
     </div>
 

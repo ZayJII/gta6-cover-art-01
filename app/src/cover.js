@@ -8,7 +8,20 @@
 // Coordinates are normalized 0..1 including outer frame
 // ============================================================
 export const LAYOUTS = {
-  // Default: irregular mosaic grid matching GTA VI box art
+  // Default 1080x1080: 6 photo panels + emblem (7 total), using all 6 sample photos once
+  'mosaic-1080': [
+    // Row 1: 3 equal panels across top
+    { x: 0.029, y: 0.029, w: 0.300, h: 0.442 },   // P1 - left
+    { x: 0.345, y: 0.029, w: 0.310, h: 0.442 },   // P2 - center
+    { x: 0.671, y: 0.029, w: 0.300, h: 0.442 },   // P3 - right
+    // EMBLEM - full width typographic plate (center)
+    { x: 0.029, y: 0.485, w: 0.942, h: 0.180, isEmblem: true }, // P4 - emblem plate
+    // Row 2: 3 equal panels across bottom
+    { x: 0.029, y: 0.685, w: 0.300, h: 0.286 },   // P5 - bottom left
+    { x: 0.345, y: 0.685, w: 0.310, h: 0.286 },   // P6 - bottom center
+    { x: 0.671, y: 0.685, w: 0.300, h: 0.286 }    // P7 - bottom right
+  ],
+  // Default: irregular mosaic grid matching GTA VI box art (legacy 9-panel)
   'mosaic': [
     // Row 1
     { x: 0.029, y: 0.029, w: 0.249, h: 0.289 },   // P1 - action (small)
@@ -901,6 +914,7 @@ function drawOuterFrame(ctx, w, h, frameColor) {
 
 // ============================================================
 // Draw emblem plate (typographic anchor behind title)
+// Procedural sunset scene: sky gradient, sun disc, city skyline, palm silhouettes
 // ============================================================
 function drawEmblemPlate(ctx, panel, w, h, grade) {
   const { x, y, w: pw, h: ph } = panel;
@@ -909,25 +923,167 @@ function drawEmblemPlate(ctx, panel, w, h, grade) {
   const panelW = Math.floor(pw * w);
   const panelH = Math.floor(ph * h);
 
-  // Create gradient for emblem
-  const grad = ctx.createLinearGradient(px, py, px, py + panelH);
-  grad.addColorStop(0, '#1C43B8');  // cobalt
-  grad.addColorStop(0.3, '#8B40BF'); // violet
-  grad.addColorStop(0.6, '#E852CF'); // magenta
-  grad.addColorStop(1, '#FFB645');   // orange/gold
-
-  ctx.fillStyle = grad;
+  // 1. Sunset sky gradient (vertical, using grade sky colors)
+  const skyGrad = ctx.createLinearGradient(px, py, px, py + panelH);
+  grade.skyGradient.forEach(stop => {
+    const [r, g, b] = stop.color;
+    skyGrad.addColorStop(stop.stop, `rgb(${r},${g},${b})`);
+  });
+  ctx.fillStyle = skyGrad;
   ctx.fillRect(px, py, panelW, panelH);
 
-  // White inner edge
-  ctx.strokeStyle = '#F6F3EE';
-  ctx.lineWidth = Math.max(2, Math.round(w * 0.002));
-  ctx.strokeRect(px + ctx.lineWidth / 2, py + ctx.lineWidth / 2, panelW - ctx.lineWidth, panelH - ctx.lineWidth);
+  // 2. Sun disc - large circle in upper portion with glow
+  const sunX = px + panelW * 0.5;
+  const sunY = py + panelH * 0.35;
+  const sunRadius = Math.max(30, Math.min(panelW, panelH) * 0.18);
 
-  // Dark outer outline
+  // Sun glow (outer)
+  const glowGrad = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, sunRadius * 2.5);
+  glowGrad.addColorStop(0, 'rgba(255, 200, 100, 0.6)');
+  glowGrad.addColorStop(0.3, 'rgba(255, 150, 50, 0.3)');
+  glowGrad.addColorStop(1, 'rgba(255, 100, 30, 0)');
+  ctx.fillStyle = glowGrad;
+  ctx.beginPath();
+  ctx.arc(sunX, sunY, sunRadius * 2.5, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Sun disc
+  const sunGrad = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, sunRadius);
+  sunGrad.addColorStop(0, '#FFF8E0');
+  sunGrad.addColorStop(0.5, '#FFD880');
+  sunGrad.addColorStop(1, '#FFB040');
+  ctx.fillStyle = sunGrad;
+  ctx.beginPath();
+  ctx.arc(sunX, sunY, sunRadius, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 3. City skyline silhouette - procedural buildings along bottom
+  const skylineY = py + panelH;
+  const buildingCount = Math.max(8, Math.floor(panelW / 40));
+  const baseHeight = panelH * 0.45;
+
+  ctx.fillStyle = '#0A0D14'; // Deep silhouette color
+
+  // Deterministic pseudo-random for building widths/heights
+  let seed = 12345;
+  function rand() {
+    seed = (seed * 1664525 + 1013904223) >>> 0;
+    return seed / 4294967296;
+  }
+
+  let currentX = px;
+  for (let i = 0; i < buildingCount; i++) {
+    const buildingWidth = Math.max(20, Math.floor(panelW / buildingCount * (0.7 + rand() * 0.6)));
+    const buildingHeight = Math.max(panelH * 0.15, baseHeight * (0.4 + rand() * 0.7));
+    const buildingX = currentX;
+    const buildingY = skylineY - buildingHeight;
+
+    // Main building
+    ctx.fillRect(buildingX, buildingY, buildingWidth, buildingHeight);
+
+    // Random windows (dark rectangles)
+    if (rand() > 0.5) {
+      ctx.fillStyle = '#000000';
+      const windowCount = Math.floor(buildingWidth / 15);
+      for (let w = 0; w < windowCount; w++) {
+        if (rand() > 0.7) {
+          const wx = buildingX + 5 + w * 15;
+          const wy = buildingY + 10 + rand() * (buildingHeight - 20);
+          const ww = 4 + rand() * 8;
+          const wh = 6 + rand() * 12;
+          ctx.fillRect(wx, wy, ww, wh);
+        }
+      }
+      ctx.fillStyle = '#0A0D14';
+    }
+
+    currentX += buildingWidth + Math.max(2, Math.floor(panelW * 0.005));
+    if (currentX > px + panelW) break;
+  }
+
+  // 4. Palm silhouettes - left and right sides
+  drawPalmSilhouette(ctx, px + panelW * 0.08, skylineY, panelH * 0.65, true);
+  drawPalmSilhouette(ctx, px + panelW * 0.92, skylineY, panelH * 0.65, false);
+
+  // 5. Optional thin palm footer at very bottom
+  drawPalmFooter(ctx, px, py + panelH - panelH * 0.08, panelW, panelH * 0.08);
+
+  // 6. White inner edge
+  ctx.strokeStyle = '#F6F3EE';
+  const innerLineWidth = Math.max(2, Math.round(w * 0.002));
+  ctx.lineWidth = innerLineWidth;
+  ctx.strokeRect(px + innerLineWidth / 2, py + innerLineWidth / 2, panelW - innerLineWidth, panelH - innerLineWidth);
+
+  // 7. Dark outer outline
   ctx.strokeStyle = grade.deepInkColor;
-  ctx.lineWidth = Math.max(3, Math.round(w * 0.003));
-  ctx.strokeRect(px + ctx.lineWidth / 2, py + ctx.lineWidth / 2, panelW - ctx.lineWidth, panelH - ctx.lineWidth);
+  const outerLineWidth = Math.max(3, Math.round(w * 0.003));
+  ctx.lineWidth = outerLineWidth;
+  ctx.strokeRect(px + outerLineWidth / 2, py + outerLineWidth / 2, panelW - outerLineWidth, panelH - outerLineWidth);
+}
+
+// Helper: Draw a palm silhouette using bezier curves
+function drawPalmSilhouette(ctx, baseX, baseY, height, leanRight) {
+  ctx.fillStyle = '#0A0D14';
+  ctx.beginPath();
+
+  // Trunk (curved)
+  const trunkWidth = Math.max(4, height * 0.02);
+  const lean = leanRight ? height * 0.15 : -height * 0.15;
+
+  ctx.moveTo(baseX - trunkWidth / 2, baseY);
+  ctx.quadraticCurveTo(
+    baseX + lean * 0.3, baseY - height * 0.3,
+    baseX + lean * 0.5, baseY - height * 0.5
+  );
+  ctx.quadraticCurveTo(
+    baseX + lean * 0.7, baseY - height * 0.7,
+    baseX + lean, baseY - height
+  );
+  ctx.lineTo(baseX + lean + trunkWidth, baseY - height);
+  ctx.quadraticCurveTo(
+    baseX + lean * 0.7 + trunkWidth, baseY - height * 0.7,
+    baseX + lean * 0.5 + trunkWidth, baseY - height * 0.5
+  );
+  ctx.quadraticCurveTo(
+    baseX + lean * 0.3 + trunkWidth, baseY - height * 0.3,
+    baseX + trunkWidth, baseY
+  );
+  ctx.closePath();
+  ctx.fill();
+
+  // Fronds (palm leaves) - 5-7 fronds fanning out
+  const frondCount = 6;
+  for (let f = 0; f < frondCount; f++) {
+    const angle = (f / (frondCount - 1) - 0.5) * Math.PI * 0.8; // -72° to +72°
+    const frondLength = height * (0.35 + Math.random() * 0.15);
+    const frondWidth = height * 0.08;
+
+    const tipX = baseX + lean + Math.sin(angle) * frondLength;
+    const tipY = baseY - height - Math.cos(angle) * frondLength;
+    const midX = baseX + lean + Math.sin(angle) * frondLength * 0.5;
+    const midY = baseY - height - Math.cos(angle) * frondLength * 0.5;
+
+    ctx.beginPath();
+    ctx.moveTo(baseX + lean, baseY - height);
+    ctx.quadraticCurveTo(midX + Math.cos(angle) * frondWidth, midY - Math.sin(angle) * frondWidth, tipX, tipY);
+    ctx.quadraticCurveTo(midX - Math.cos(angle) * frondWidth, midY + Math.sin(angle) * frondWidth, baseX + lean, baseY - height);
+    ctx.fill();
+  }
+}
+
+// Helper: Draw thin palm footer along bottom edge
+function drawPalmFooter(ctx, x, y, width, height) {
+  ctx.fillStyle = 'rgba(10, 13, 20, 0.6)';
+  const frondCount = Math.floor(width / 30);
+  for (let i = 0; i < frondCount; i++) {
+    const fx = x + (i + 0.5) * (width / frondCount);
+    const fh = height * (0.5 + Math.random() * 0.5);
+    ctx.beginPath();
+    ctx.moveTo(fx, y + height);
+    ctx.quadraticCurveTo(fx - 10, y + height - fh * 0.5, fx, y + height - fh);
+    ctx.quadraticCurveTo(fx + 10, y + height - fh * 0.5, fx, y + height);
+    ctx.fill();
+  }
 }
 
 // ============================================================
@@ -946,7 +1102,8 @@ export function drawCover(canvas, photos, panelPhotos, crops, layoutName, gradeN
   // Select layout based on export size for mosaic
   let layout = LAYOUTS[layoutName];
   if (layoutName === 'mosaic' && exportSize) {
-    if (exportSize === '1080x1350') layout = LAYOUTS['mosaic-1350'];
+    if (exportSize === '1080x1080') layout = LAYOUTS['mosaic-1080'];
+    else if (exportSize === '1080x1350') layout = LAYOUTS['mosaic-1350'];
     else if (exportSize === '1920x1080') layout = LAYOUTS['mosaic-1920'];
   }
   if (!layout) layout = LAYOUTS['mosaic'];

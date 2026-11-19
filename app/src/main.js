@@ -19,6 +19,7 @@ const layoutPresets = document.getElementById('layout-presets');
 const gradePresets = document.getElementById('grade-presets');
 const sizePresets = document.getElementById('size-presets');
 const exportBtn = document.getElementById('export-btn');
+const exportAllBtn = document.getElementById('export-all-btn');
 const statusEl = document.getElementById('status');
 const photoHint = document.getElementById('photo-hint');
 
@@ -147,6 +148,9 @@ photoInput.addEventListener('change', async (e) => {
   updateThumbnails();
   updatePhotoHint();
   redraw();
+  if (photos.length > 0) {
+    updateStep(2);
+  }
 });
 
 // Update photo hint visibility
@@ -172,6 +176,9 @@ layoutPresets.addEventListener('click', (e) => {
   selectedPanel = 0;
   updateThumbnails();
   redraw();
+
+  // Update step indicator
+  updateStep(2);
 });
 
 // Grade preset buttons
@@ -181,6 +188,7 @@ gradePresets.addEventListener('click', (e) => {
   currentGrade = btn.dataset.grade;
   document.querySelectorAll('.grade-btn').forEach(b => b.classList.toggle('active', b === btn));
   redraw();
+  updateStep(2);
 });
 
 // Size preset buttons
@@ -190,7 +198,15 @@ sizePresets.addEventListener('click', (e) => {
   currentSize = btn.dataset.size;
   document.querySelectorAll('.size-btn').forEach(b => b.classList.toggle('active', b === btn));
   resizeCanvas();
+  updateStep(3);
 });
+
+// Update step indicator
+function updateStep(step) {
+  document.querySelectorAll('.step').forEach((el, idx) => {
+    el.classList.toggle('active', idx + 1 === step);
+  });
+}
 
 // Caption input
 captionInput.addEventListener('input', () => {
@@ -310,36 +326,63 @@ canvas.addEventListener('dblclick', (e) => {
   }
 });
 
-// Export button
-exportBtn.addEventListener('click', () => {
+// Export single size
+async function exportSize(sizeKey) {
+  if (photos.length === 0) {
+    statusEl.textContent = 'Add a photo first';
+    return false;
+  }
+
+  const size = EXPORT_SIZES[sizeKey];
+  const offscreen = document.createElement('canvas');
+  offscreen.width = size.width;
+  offscreen.height = size.height;
+
+  drawCover(offscreen, photos, panelPhotos, crops, currentLayout, currentGrade, captionInput.value, sizeKey);
+
+  return new Promise((resolve) => {
+    offscreen.toBlob((blob) => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+      a.download = `neon-folio-${sizeKey}-${timestamp}.png`;
+      a.click();
+      URL.revokeObjectURL(url);
+      statusEl.textContent = `Saved ${a.download} (${size.width} × ${size.height})`;
+      resolve(true);
+    }, 'image/png');
+  });
+}
+
+exportBtn.addEventListener('click', async () => {
+  exportBtn.disabled = true;
+  exportBtn.textContent = 'Exporting...';
+  await exportSize(currentSize);
+  exportBtn.disabled = false;
+  exportBtn.textContent = 'Export PNG';
+});
+
+// Export all 3 sizes
+exportAllBtn.addEventListener('click', async () => {
   if (photos.length === 0) {
     statusEl.textContent = 'Add a photo first';
     return;
   }
 
-  exportBtn.disabled = true;
-  exportBtn.textContent = 'Exporting...';
+  exportAllBtn.disabled = true;
+  exportAllBtn.textContent = 'Exporting All...';
 
-  const size = EXPORT_SIZES[currentSize];
-  const offscreen = document.createElement('canvas');
-  offscreen.width = size.width;
-  offscreen.height = size.height;
-  const offCtx = offscreen.getContext('2d');
+  const sizes = ['1080x1080', '1080x1350', '1920x1080'];
+  for (const sizeKey of sizes) {
+    await exportSize(sizeKey);
+    // Small delay between exports
+    await new Promise(r => setTimeout(r, 100));
+  }
 
-  drawCover(offscreen, photos, panelPhotos, crops, currentLayout, currentGrade, captionInput.value, currentSize);
-
-  offscreen.toBlob((blob) => {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
-    a.download = `neon-folio-${currentSize}-${timestamp}.png`;
-    a.click();
-    URL.revokeObjectURL(url);
-    statusEl.textContent = `Saved ${a.download} (${size.width} × ${size.height})`;
-    exportBtn.disabled = false;
-    exportBtn.textContent = 'Export PNG';
-  }, 'image/png');
+  exportAllBtn.disabled = false;
+  exportAllBtn.textContent = 'Export All 3 Sizes';
+  statusEl.textContent = 'Exported all 3 sizes!';
 });
 
 // Shot mode for screenshots
@@ -397,9 +440,16 @@ if (shot) {
       const cropMap = {};
 
       if (currentLayout.startsWith('mosaic')) {
-        // Map to layout indices (0-8), emblem at index 4 is skipped
-        const panelNames = ['p1', 'p2', 'p3', 'p4', 'p6', 'p7', 'p8', 'p9'];
-        const layoutIndices = [0, 1, 2, 3, 5, 6, 7, 8];
+        let panelNames, layoutIndices;
+        if (currentLayout === 'mosaic-1080') {
+          // 7 panels: indices 0,1,2 are top row; 3 is emblem; 4,5,6 are bottom row
+          panelNames = ['p1', 'p2', 'p3', 'p5', 'p6', 'p7'];
+          layoutIndices = [0, 1, 2, 4, 5, 6];
+        } else {
+          // Legacy 9-panel mosaic: emblem at index 4
+          panelNames = ['p1', 'p2', 'p3', 'p4', 'p6', 'p7', 'p8', 'p9'];
+          layoutIndices = [0, 1, 2, 3, 5, 6, 7, 8];
+        }
         panelNames.forEach((name, idx) => {
           if (shotCrops[name]) cropMap[layoutIndices[idx]] = shotCrops[name];
         });
